@@ -1,6 +1,11 @@
-// app.js
-
 let allGiftCards = [];
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("countryFilter").addEventListener("change", applyFilters);
+  document.getElementById("amountFilter").addEventListener("change", applyFilters);
+  document.getElementById("categoryDropdown").addEventListener("change", applyFilters);
+  document.getElementById("searchFilter").addEventListener("input", applyFilters);
+});
 
 function getCountryName(code) {
   try {
