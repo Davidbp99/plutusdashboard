@@ -16,7 +16,11 @@ const CRY_REWARD_LEVELS = [
     { label: "Honey Badger", threshold: 40000 }
   ];
   
-
+  function formatCurrency(amount) {
+    const currency = loadCurrencyPreference();
+    return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amount);
+  }
+  
 let allGiftCards = [];
 let giftcardVault = [];
 
@@ -109,30 +113,9 @@ async function fetchData() {
           rewardRateMap.set(key, r.rewardRate);
         }
       });
-  
-      const tbody = document.querySelector("#rewardTable tbody");
-      tbody.innerHTML = "";
-  
-      rewards.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      rewards.forEach(entry => {
-        const createdAt = new Date(entry.createdAt);
-        const approveAt = new Date(createdAt.getTime() + 45 * 24 * 60 * 60 * 1000);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${entry.id}</td>
-          <td>${entry.ticker}</td>
-          <td>${entry.amount}</td>
-          <td>${entry.fiatAmountRewarded || '-'}</td>
-          <td><span class="badge bg-${entry.status === 'approved' ? 'success' : 'warning'}">${entry.status}</span></td>
-          <td>${entry.type}</td>
-          <td>${entry.transactionDescription || '-'}</td>
-          <td>${entry.rewardRate || '-'}</td>
-          <td>${createdAt.toLocaleString()}</td>
-          <td>${approveAt.toLocaleString()}</td>
-        `;
-        tbody.appendChild(row);
-      });
-  
+      window.lastFetchedRewards = rewards;
+
+      renderRewardsTable(rewards);
       renderForecast(rewards);
       fetchGiftCards(token);
       fetchGiftCardVault(token);
@@ -153,6 +136,33 @@ async function fetchData() {
     }
   }
   
+
+  function renderRewardsTable(rewards) {
+    const tbody = document.querySelector("#rewardTable tbody");
+    tbody.innerHTML = "";
+  
+    rewards.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    rewards.forEach(entry => {
+      const createdAt = new Date(entry.createdAt);
+      const approveAt = new Date(createdAt.getTime() + 45 * 24 * 60 * 60 * 1000);
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${entry.id}</td>
+        <td>${entry.ticker}</td>
+        <td>${entry.amount}</td>
+        <td>${entry.fiatAmountRewarded ? formatCurrency(entry.fiatAmountRewarded / 100) : '-'}</td>
+        <td><span class="badge bg-${entry.status === 'approved' ? 'success' : 'warning'}">${entry.status}</span></td>
+        <td>${entry.type}</td>
+        <td>${entry.transactionDescription || '-'}</td>
+        <td>${entry.rewardRate || '-'}</td>
+        <td>${createdAt.toLocaleString()}</td>
+        <td>${approveAt.toLocaleString()}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+  
+
   function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -270,13 +280,13 @@ async function fetchTransactions(token, limit) {
         <td>${getMCC(tx)}</td>
         <td>${txType}</td>
         <td>${tx.status || '—'}</td>
-        <td>${parseFloat(tx.amount).toFixed(2)} ${tx.currency}</td>
+        <td>${formatCurrency(parseFloat(tx.amount))}</td>
         <td>${tx.originalTransactionId || '—'}</td>
         <td>${parseFloat(tx.totalPluAmount || 0).toFixed(4)}</td>
         <td id=\"rewardRate-${tx.id}\">Loading...</td>
       `;
 
-      if (txType === 'DEPOSIT_FUNDS_RECEIVED' || txType === 'PAYIN') {
+      if (txType === 'DEPOSIT_FUNDS_RECEIVED' || txType === 'PAYIN' || txType === 'PLUTUS_WALLET_GIFTCARD_SWAP_FEE' || txType === 'PLUTUS_WALLET_WITHDRAW_FEE' ) {
         row.classList.add("table-success");
         const cell = row.querySelector(`#rewardRate-${tx.id}`);
         if (cell) cell.innerText = '--';
@@ -286,7 +296,7 @@ async function fetchTransactions(token, limit) {
 
       tbody.appendChild(row);
 
-      if (txType !== 'DEPOSIT_FUNDS_RECEIVED' && txType !== 'PAYIN' && txType !== "PLUTUS_WALLET_GIFTCARD_SWAP_FEE") {
+      if (txType !== 'DEPOSIT_FUNDS_RECEIVED' && txType !== 'PAYIN' && txType !== "PLUTUS_WALLET_GIFTCARD_SWAP_FEE" && txType !== "PLUTUS_WALLET_WITHDRAW_FEE") {
         if (isRewardRateFresh(tx.id, tx.date, cache)) {
           const cell = document.getElementById(`rewardRate-${tx.id}`);
           if (cell) cell.innerText = cache[tx.id].rate;
@@ -641,7 +651,14 @@ function toggleVaultView() {
   function renderUserSettings(summary, subscription = null, wallets = []) {
     const container = document.getElementById("userSettingsContainer");
     container.innerHTML = "";
-  
+    setTimeout(() => {
+      const currencyEl = document.getElementById("currencySelect");
+      if (currencyEl) {
+        currencyEl.value = loadCurrencyPreference();
+      }
+    }, 0);
+    
+
     if (!summary) {
       container.innerHTML = `<p class="text-danger">Failed to load user summary.</p>`;
       return;
@@ -692,11 +709,20 @@ function toggleVaultView() {
       <div class="col-md-6">
         <div class="card bg-dark text-light border-secondary">
           <div class="card-body">
-            <h5 class="card-title">Summary</h5>
+            <h5 class="card-title">User Summary</h5>
             <p class="card-text mb-1"><strong>Total PLU:</strong> ${total.toFixed(2)}</p>
             <p class="card-text mb-1"><strong>Available Rewards:</strong> ${reward.toFixed(2)} CRY</p>
             <p class="card-text mb-1"><strong>Reward Level:</strong> <span class="badge bg-info text-dark">${level}</span></p>
             <p class="card-text mb-0"><strong>CRY Rate:</strong> ${rate}</p>
+
+            <div class="mb-3">
+  <label for="currencySelect" class="card-text mb-0"><strong>Preferred Currency</strong></label>
+  <select id="currencySelect" class="form-select" onchange="saveCurrencyPreference()">
+    <option value="EUR">EUR (€)</option>
+    <option value="GBP">GBP (£)</option>
+  </select>
+</div>
+
           </div>
         </div>
         ${subInfo}
@@ -876,7 +902,7 @@ function renderSpendingTab(transactions) {
     <table class="table table-hover">
       <thead><tr><th>Merchant</th><th>Total Spent</th><th>Tx Count</th><th>Avg Amount</th><th>Avg Interval (days)</th></tr></thead>
       <tbody>
-        ${recurring.map(r => `<tr><td>${r.merchant} <button class='btn btn-sm btn-outline-danger ms-2' onclick='dismissRecurring("${r.merchant}")'>X</button></td><td>€${r.totalSpent.toFixed(2)}</td><td>${r.txCount}</td><td>€${r.avgAmount.toFixed(2)}</td><td>${r.avgInterval.toFixed(1)}</td></tr>`).join('')}
+        ${recurring.map(r => `<tr><td>${r.merchant} <button class='btn btn-sm btn-outline-danger ms-2' onclick='dismissRecurring("${r.merchant}")'>X</button></td><td>${formatCurrency(r.totalSpent)}</td><td>${r.txCount}</td><td>€${r.avgAmount.toFixed(2)}</td><td>${r.avgInterval.toFixed(1)}</td></tr>`).join('')}
       </tbody>
     </table>
     <h4 class="mt-4">Category Breakdown</h4>
@@ -925,4 +951,25 @@ function restoreRecurring(merchant) {
   }
 }
 
+
+const CURRENCY_PREF_KEY = 'preferredCurrency';
+
+function saveCurrencyPreference() {
+  const selected = document.getElementById("currencySelect").value;
+  localStorage.setItem(CURRENCY_PREF_KEY, selected);
+
+  // Re-render transactions and spending tab with new currency
+  if (window.lastFetchedTransactions) {
+    fetchTransactions(document.getElementById("authToken").value.trim(), document.getElementById("limit").value.trim());
+  }
+  if (window.lastFetchedRewards) {
+    renderRewardsTable(window.lastFetchedRewards);
+  }
+  
+}
+
+
+function loadCurrencyPreference() {
+  return localStorage.getItem(CURRENCY_PREF_KEY) || 'EUR';
+}
 
