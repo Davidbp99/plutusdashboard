@@ -116,6 +116,7 @@ async function fetchData() {
       window.lastFetchedRewards = rewards;
 
       renderRewardsTable(rewards);
+      applyRewardFilter();
       renderForecast(rewards);
       fetchGiftCards(token);
       fetchGiftCardVault(token);
@@ -142,15 +143,18 @@ async function fetchData() {
     tbody.innerHTML = "";
   
     rewards.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  
     rewards.forEach(entry => {
       const createdAt = new Date(entry.createdAt);
       const approveAt = new Date(createdAt.getTime() + 45 * 24 * 60 * 60 * 1000);
+      const fiatFormatted = entry.fiatAmountRewarded ? formatCurrency(entry.fiatAmountRewarded / 100) : '-';
+  
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${entry.id}</td>
         <td>${entry.ticker}</td>
         <td>${entry.amount}</td>
-        <td>${entry.fiatAmountRewarded ? formatCurrency(entry.fiatAmountRewarded / 100) : '-'}</td>
+        <td>${fiatFormatted}</td>
         <td><span class="badge ${getStatusBadgeClass(entry.status)}">${entry.status}</span></td>
         <td>${entry.type}</td>
         <td>${entry.transactionDescription || '-'}</td>
@@ -161,6 +165,20 @@ async function fetchData() {
       tbody.appendChild(row);
     });
   }
+  
+
+  function applyRewardFilter() {
+    const status = document.getElementById("rewardStatusFilter").value;
+    if (!window.lastFetchedRewards) return;
+  
+    const filtered = status
+      ? window.lastFetchedRewards.filter(r => r.status.toLowerCase() === status)
+      : window.lastFetchedRewards;
+  
+    renderRewardsTable(filtered);
+  }
+  
+
   function getStatusBadgeClass(status) {
     switch (status.toLowerCase()) {
       case 'approved': return 'bg-success';

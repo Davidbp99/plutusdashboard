@@ -352,10 +352,21 @@
 
     <!-- Reward Table -->
     <div class="tab-pane fade" id="tablePane">
+      
       <div class="card shadow-sm">
         <div class="card-body">
           <h4 class="card-title mb-3">Rewards</h4>
           <div class="table-responsive">
+            <div class="mb-3">
+              <label for="rewardStatusFilter" class="form-label">Filter by Status</label>
+              <select id="rewardStatusFilter" class="form-select w-auto d-inline-block" onchange="applyRewardFilter()">
+                <option value="">All</option>
+                <option value="approved">Approved</option>
+                <option value="pending">Pending</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            
             <table class="table table-bordered table-hover" id="rewardTable">
               <thead>
               <tr>
