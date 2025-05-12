@@ -126,6 +126,7 @@ async function fetchData() {
         fetchSubscriptionInfo(token),
         fetchStakingWallets(token)
       ]);
+      window.lastFetchedUserData = {crySummary,subscription,wallets}
       renderUserSettings(crySummary, subscription, wallets);
       
       
@@ -162,7 +163,14 @@ async function fetchData() {
         <td>${createdAt.toLocaleString()}</td>
         <td>${approveAt.toLocaleString()}</td>
       `;
-      tbody.appendChild(row);
+      if (localStorage.getItem('devMode') === '1') {
+        row.addEventListener('click', (function(entryCopy) {
+          return () => showDevInspector('rewards/list', entryCopy);
+        })(entry));
+        row.classList.add('table-info');
+      }
+      
+  tbody.appendChild(row);
     });
   }
   
@@ -301,6 +309,21 @@ async function fetchTransactions(token, limit) {
       const txType = isRefund ? 'REFUND' : tx.type;
 
       const row = document.createElement("tr");
+      tx.__source = 'statement/list'; 
+
+if (localStorage.getItem('devMode') === '1') {
+  const rewardData = cache[tx.id] || { note: 'No reward data found in cache.' };
+  row.addEventListener('click', (function(txCopy, rewardCopy) {
+    return () => showDevInspector('statement/list + cached reward rate (rewards/summary/card-transaction)', {
+      transaction: txCopy,
+      rewardRateFromCache: rewardCopy
+    });
+  })(tx, rewardData));
+  row.classList.add('table-primary');
+}
+
+      
+      
       row.innerHTML = `
         <td>${getDescription(tx)}</td>
         <td>${getMCC(tx)}</td>
@@ -312,7 +335,7 @@ async function fetchTransactions(token, limit) {
         <td id=\"rewardRate-${tx.id}\">Loading...</td>
       `;
 
-      if (txType === 'DEPOSIT_FUNDS_RECEIVED' || txType === 'PAYIN' || txType === 'PLUTUS_WALLET_GIFTCARD_SWAP_FEE' || txType === 'PLUTUS_WALLET_WITHDRAW_FEE' ) {
+      if (txType === 'DEPOSIT_FUNDS_RECEIVED' || txType === 'PAYIN' || txType === 'PLUTUS_WALLET_GIFTCARD_SWAP_FEE' || txType === 'PLUTUS_WALLET_WITHDRAW_FEE' || txType === 'ASI'  ) {
         row.classList.add("table-success");
         const cell = row.querySelector(`#rewardRate-${tx.id}`);
         if (cell) cell.innerText = '--';
@@ -322,7 +345,7 @@ async function fetchTransactions(token, limit) {
 
       tbody.appendChild(row);
 
-      if (txType !== 'DEPOSIT_FUNDS_RECEIVED' && txType !== 'PAYIN' && txType !== "PLUTUS_WALLET_GIFTCARD_SWAP_FEE" && txType !== "PLUTUS_WALLET_WITHDRAW_FEE") {
+      if (txType !== 'DEPOSIT_FUNDS_RECEIVED' && txType !== 'PAYIN' && txType !== "PLUTUS_WALLET_GIFTCARD_SWAP_FEE" && txType !== "PLUTUS_WALLET_WITHDRAW_FEE" && txType !== 'ASI' ) {
         if (isRewardRateFresh(tx.id, tx.date, cache)) {
           const cell = document.getElementById(`rewardRate-${tx.id}`);
           if (cell) cell.innerText = cache[tx.id].rate;
@@ -677,6 +700,26 @@ function toggleVaultView() {
   function renderUserSettings(summary, subscription = null, wallets = []) {
     const container = document.getElementById("userSettingsContainer");
     container.innerHTML = "";
+    if (localStorage.getItem('devMode') === '1') {
+      container.onclick = () => {
+        showDevInspector('User Settings APIs', {
+          crySummarySource: 'cry/ledger/summary',
+          subscriptionSource: 'subscription',
+          walletsSource: 'staking-wallets/list',
+          crySummary: summary,
+          subscription,
+          wallets
+        });
+      };
+      container.style.cursor = 'pointer';
+      container.title = 'Click to inspect full user settings data (DevMode)';
+    } else {
+      container.onclick = null;
+      container.style.cursor = '';
+      container.title = '';
+    }
+    
+    
     setTimeout(() => {
       const currencyEl = document.getElementById("currencySelect");
       if (currencyEl) {
@@ -737,7 +780,7 @@ function toggleVaultView() {
           <div class="card-body">
             <h5 class="card-title">User Summary</h5>
             <p class="card-text mb-1"><strong>Total PLU:</strong> ${total.toFixed(2)}</p>
-            <p class="card-text mb-1"><strong>Available Rewards:</strong> ${reward.toFixed(2)} CRY</p>
+            <p class="card-text mb-1"><strong>CRY Rewards:</strong> ${reward.toFixed(2)} CRY</p>
             <p class="card-text mb-1"><strong>Reward Level:</strong> <span class="badge bg-info text-dark">${level}</span></p>
             <p class="card-text mb-0"><strong>CRY Rate:</strong> ${rate}</p>
 
@@ -998,4 +1041,118 @@ function saveCurrencyPreference() {
 function loadCurrencyPreference() {
   return localStorage.getItem(CURRENCY_PREF_KEY) || 'EUR';
 }
+
+
+
+window.DevMode = function (enable) {
+  localStorage.setItem('devMode', enable ? '1' : '0');
+  console.log(`🔧 DevMode ${enable ? 'enabled' : 'disabled'}`);
+  document.body.classList.toggle('devmode-active', enable);
+
+  const token = document.getElementById("authToken").value.trim();
+  const limit = document.getElementById("limit").value.trim();
+
+  document.getElementById('exportGiftcardsDev')?.classList.toggle('d-none', !enable);
+  document.getElementById('rerenderUserSettingsBtn')?.classList.toggle('d-none', !enable);
+
+  if (token && limit) {
+    if (window.lastFetchedRewards) renderRewardsTable(window.lastFetchedRewards);
+    if (window.lastFetchedTransactions) fetchTransactions(token, limit);
+    if (window.lastFetchedUserData) {
+      renderUserSettings(
+        window.lastFetchedUserData.crySummary,
+        window.lastFetchedUserData.subscription,
+        window.lastFetchedUserData.wallets
+      );
+    }
+  }
+};
+
+
+
+window.showDevInspector = function (source, data) {
+  const modal = new bootstrap.Modal(document.getElementById('devInspectorModal'));
+  const content = document.getElementById('devInspectorContent');
+  content.textContent = `📦 Source: ${source}\n\n${JSON.stringify(data, null, 2)}`;
+  modal.show();
+};
+
+
+/*
+Dev notes. Feel free to use these if you now found this.
+
+-- Pull full api call for a row
+DevMode(true);
+DevMode(false);
+console.log(document.body.classList.contains('devmode-active')); 
+*/
+
+
+function exportAllGiftcardsToCSV() {
+  if (!Array.isArray(allGiftCards) || allGiftCards.length === 0) {
+    alert("No gift cards loaded.");
+    return;
+  }
+
+  const csvData = allGiftCards.map(card => ({
+    name: card.name,
+    countries: (card.countries || []).join("; "),
+    categories: (card.categories || []).join("; "),
+    currency: card.currency_code || '',
+    denominations: (card.denominations || []).join("; "),
+    discount: card.discount_percentage,
+    expiry: card.expiry || 'N/A',
+    url: card.gift_card_url.replace(/^"|"$/g, '') 
+  }));
+
+
+  const headers = Object.keys(csvData[0]);
+  const rows = csvData.map(obj => headers.map(h => {
+    const value = (obj[h] || '').toString().replace(/"/g, '""');
+    return '"' + value + '"';
+  }).join(","));
+
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "gc.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+
+// legal notice
+window.addEventListener('DOMContentLoaded', () => {
+  const trigger = document.querySelector('button[data-bs-target="#howtoPane"]');
+  if (trigger) trigger.click();
+
+  if (!localStorage.getItem("plutusNoticeAccepted")) {
+    const legalModal = new bootstrap.Modal(document.getElementById('legalNoticeModal'));
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmAcceptModal'));
+
+    legalModal.show();
+
+    document.getElementById("acceptLegalNotice").addEventListener("click", () => {
+      confirmModal.show();
+    });
+
+    document.getElementById("rejectLegalNotice").addEventListener("click", () => {
+      window.location.href = "https://www.google.com";
+    });
+
+    document.getElementById("confirmAccept").addEventListener("click", () => {
+      localStorage.setItem("plutusNoticeAccepted", "1");
+      confirmModal.hide();
+      legalModal.hide();
+    });
+
+    document.getElementById("confirmReject").addEventListener("click", () => {
+      confirmModal.hide();
+    });
+  }
+});
+
 

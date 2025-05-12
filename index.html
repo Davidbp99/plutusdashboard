@@ -90,6 +90,14 @@
   word-break: break-word;
 }
 
+body:not(.devmode-active) .table-primary,
+body:not(.devmode-active) .table-info {
+  background-color: inherit !important;
+  color: inherit !important;
+  cursor: default !important;
+}
+
+
   </style>
   
   <script>
@@ -110,6 +118,23 @@
 
 </head>
 <body>
+
+
+  <div class="modal fade" id="devInspectorModal" tabindex="-1" aria-labelledby="devInspectorLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content bg-dark text-light border-secondary">
+        <div class="modal-header">
+          <h5 class="modal-title" id="devInspectorLabel">🔍 Dev Inspector</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <pre id="devInspectorContent" class="bg-black text-success p-3 rounded" style="white-space: pre-wrap;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
 <div class="container">
     <!-- Token Input Section -->
 <div class="card shadow-sm mb-4">
@@ -432,6 +457,8 @@
  <div class="tab-pane fade" id="giftcardsPane">
     <div class="card shadow-sm">
       <div class="card-body">
+        <button id="exportGiftcardsDev" class="btn btn-outline-light mb-3 d-none" onclick="exportAllGiftcardsToCSV()">📤 Export All Giftcards (Dev)</button>
+
         <h4 class="card-title mb-3">Available Gift Cards</h4>
         <div class="row mb-3">
           <div class="col-md-3">
@@ -492,5 +519,51 @@
     if (trigger) trigger.click();
   });
 </script>
+
+<!-- Legal Notice Modal -->
+<div class="modal fade" id="legalNoticeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark text-light border-secondary">
+      <div class="modal-header">
+        <h5 class="modal-title">🚨 Legal Notice</h5>
+      </div>
+      <div class="modal-body">
+        <p><strong>This tool is an independent project and is not affiliated with Plutus.</strong></p>
+        <ul>
+          <li>No Plutus branding, logos, or proprietary assets are used.</li>
+          <li>Only public Plutus APIs are used — anyone with a valid account and token can access its own data to see this.</li>
+          <li>You provide your own auth token. Nothing is stored or shared remotely to the creator of this open source.</li>
+          <li>Use of this tool is at your own risk. Always verify your data directly using Plutus systems or their official dashboard.</li>
+          <li>Review and inspect the backend logic and source code here: <a href="https://github.com/Davidbp99/plutusdashboard" target="_blank">GitHub Repo</a>.</li>
+        </ul>
+        <p>By continuing, you confirm you understand and accept these conditions.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="rejectLegalNotice" class="btn btn-outline-danger">I Reject</button>
+        <button id="acceptLegalNotice" class="btn btn-primary">I Understand</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Confirm Acceptance Modal -->
+<div class="modal fade" id="confirmAcceptModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content bg-dark text-light border-secondary">
+      <div class="modal-header">
+        <h5 class="modal-title">⚠️ Confirm</h5>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you understand this?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="confirmReject" class="btn btn-outline-secondary">Go Back</button>
+        <button id="confirmAccept" class="btn btn-success">Yes, Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
 </body>
 </html>
