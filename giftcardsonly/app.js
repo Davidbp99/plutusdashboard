@@ -38,15 +38,17 @@ function loadGiftCardsFromCSV(file) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  fetch('/gc.csv')
+  fetch('plutusdashboard/giftcardsonly/gc.csv')
     .then(res => res.text())
     .then(csv => {
+      if (!csv || !csv.includes(',')) throw new Error("Invalid CSV format");
       parseGiftCardsCSV(csv);
       populateFilters(allGiftCards);
       renderGiftCards(allGiftCards);
     })
+    
     .catch(err => {
-      console.error('Failed to load giftcards.csv:', err);
+      console.error('Failed to load gc.csv:', err);
       document.getElementById('giftcardContainer').innerHTML = '<p class="text-danger">Failed to load gift cards.</p>';
     });
 
