@@ -1,3 +1,5 @@
+// app.js
+
 let allGiftCards = [];
 
 function getCountryName(code) {
@@ -8,81 +10,6 @@ function getCountryName(code) {
     return code;
   }
 }
-
-function loadGiftCardsFromCSV(file) {
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const lines = e.target.result.split('\n').filter(Boolean);
-    const headers = lines.shift().split(',');
-    allGiftCards = lines.map(line => {
-      const obj = {};
-      const values = line.split(',');
-      headers.forEach((header, i) => {
-        obj[header.trim()] = values[i]?.trim() ?? '';
-      });
-      return {
-        name: obj.name,
-        countries: obj.countries.split(';').map(c => c.trim()),
-        categories: obj.categories.split(';').map(c => c.trim()),
-        currency_code: obj.currency,
-        denominations: obj.denominations.split(';').map(n => parseFloat(n.trim())),
-        discount_percentage: obj.discount,
-        expiry: obj.expiry,
-        gift_card_url: obj.url
-      };
-    });
-    populateFilters(allGiftCards);
-    renderGiftCards(allGiftCards);
-  };
-  reader.readAsText(file);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  fetch('https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc.csv')
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return res.text();
-    })
-    .then(csv => {
-      if (!csv.includes(',')) throw new Error("CSV format invalid or empty.");
-      parseGiftCardsCSV(csv);
-      populateFilters(allGiftCards);
-      renderGiftCards(allGiftCards);
-    })
-    .catch(err => {
-      console.error('❌ Failed to load giftcards.csv:', err);
-      document.getElementById('giftcardContainer').innerHTML =
-        '<p class="text-danger">Failed to load gift cards.</p>';
-    });
-
-  document.getElementById("countryFilter").addEventListener("change", applyFilters);
-  document.getElementById("amountFilter").addEventListener("change", applyFilters);
-  document.getElementById("searchFilter").addEventListener("input", applyFilters);
-});
-
-
-function parseGiftCardsCSV(rawCSV) {
-  const lines = rawCSV.split('\n').filter(Boolean);
-  const headers = lines.shift().split(',');
-  allGiftCards = lines.map(line => {
-    const obj = {};
-    const values = line.split(',');
-    headers.forEach((header, i) => {
-      obj[header.trim()] = values[i]?.trim() ?? '';
-    });
-    return {
-      name: obj.name,
-      countries: obj.countries.split(';').map(c => c.trim()),
-      categories: obj.categories.split(';').map(c => c.trim()),
-      currency_code: obj.currency,
-      denominations: obj.denominations.split(';').map(n => parseFloat(n.trim())),
-      discount_percentage: obj.discount,
-      expiry: obj.expiry,
-      gift_card_url: obj.url
-    };
-  });
-}
-
 
 function populateFilters(data) {
   const countries = new Set();
@@ -102,24 +29,20 @@ function populateFilters(data) {
     countrySelect.appendChild(option);
   });
 
-  const catFilterBox = document.getElementById("categoryFilters");
-  catFilterBox.innerHTML = "";
+  const catSelect = document.getElementById("categoryDropdown");
+  catSelect.innerHTML = "";
   categories.forEach(cat => {
-    const div = document.createElement("div");
-    div.className = "form-check form-check-inline";
-    div.innerHTML = `
-      <input class="form-check-input" type="checkbox" value="${cat}" id="cat-${cat}">
-      <label class="form-check-label" for="cat-${cat}">${cat}</label>
-    `;
-    catFilterBox.appendChild(div);
+    const option = document.createElement("option");
+    option.value = cat;
+    option.textContent = cat;
+    catSelect.appendChild(option);
   });
-
-  catFilterBox.addEventListener("change", applyFilters);
 }
 
 function applyFilters() {
   const country = document.getElementById("countryFilter").value;
-  const selectedCats = Array.from(document.querySelectorAll("#categoryFilters input:checked")).map(el => el.value);
+  const catSelect = document.getElementById("categoryDropdown");
+  const selectedCats = Array.from(catSelect.selectedOptions).map(opt => opt.value);
   const amountRange = document.getElementById("amountFilter").value;
   const searchTerm = document.getElementById("searchFilter").value.trim().toLowerCase();
 
@@ -149,12 +72,12 @@ function renderGiftCards(cards) {
     col.className = "col-md-4 mb-4";
     const categories = card.categories.map(cat => `<span class='badge bg-info text-dark me-1 mb-1'>${cat}</span>`).join(" ");
     const countries = card.countries.map(getCountryName).join(", ");
-    const denominations = (card.denominations || []).join(", ");
+    const denominations = (card.denominations || []).filter(n => !isNaN(n)).join(", ");
     const currency = card.currency_code || "";
 
     col.innerHTML = `
       <div class="card h-100 text-light bg-dark border-secondary">
-        <img src="${card.gift_card_url}" class="card-img-top" alt="${card.name}" style="height: 150px; object-fit: contain; background:#1e1e1e;">
+        <img src="${sanitizeUrl(card.gift_card_url)}" class="card-img-top" alt="${card.name}" style="height: 150px; object-fit: contain; background:#1e1e1e;">
         <div class="card-body">
           <h5 class="card-title">${card.name}</h5>
           <p class="card-text mb-1"><strong>Country:</strong> ${countries}</p>
@@ -167,4 +90,8 @@ function renderGiftCards(cards) {
     `;
     container.appendChild(col);
   });
+}
+
+function sanitizeUrl(url) {
+  return (url || '').replace(/^"|"$/g, '').replace(/%22/g, '').trim();
 }
