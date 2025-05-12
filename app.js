@@ -151,7 +151,7 @@ async function fetchData() {
         <td>${entry.ticker}</td>
         <td>${entry.amount}</td>
         <td>${entry.fiatAmountRewarded ? formatCurrency(entry.fiatAmountRewarded / 100) : '-'}</td>
-        <td><span class="badge bg-${entry.status === 'approved' ? 'success' : 'warning'}">${entry.status}</span></td>
+        <td><span class="badge ${getStatusBadgeClass(entry.status)}">${entry.status}</span></td>
         <td>${entry.type}</td>
         <td>${entry.transactionDescription || '-'}</td>
         <td>${entry.rewardRate || '-'}</td>
@@ -160,6 +160,14 @@ async function fetchData() {
       `;
       tbody.appendChild(row);
     });
+  }
+  function getStatusBadgeClass(status) {
+    switch (status.toLowerCase()) {
+      case 'approved': return 'bg-success';
+      case 'rejected': return 'bg-danger';
+      case 'pending': return 'bg-warning text-dark';
+      default: return 'bg-secondary';
+    }
   }
   
 
