@@ -38,24 +38,28 @@ function loadGiftCardsFromCSV(file) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  fetch('plutusdashboard/giftcardsonly/gc.csv')
-    .then(res => res.text())
+  fetch('https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc.csv')
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return res.text();
+    })
     .then(csv => {
-      if (!csv || !csv.includes(',')) throw new Error("Invalid CSV format");
+      if (!csv.includes(',')) throw new Error("CSV format invalid or empty.");
       parseGiftCardsCSV(csv);
       populateFilters(allGiftCards);
       renderGiftCards(allGiftCards);
     })
-    
     .catch(err => {
-      console.error('Failed to load gc.csv:', err);
-      document.getElementById('giftcardContainer').innerHTML = '<p class="text-danger">Failed to load gift cards.</p>';
+      console.error('❌ Failed to load giftcards.csv:', err);
+      document.getElementById('giftcardContainer').innerHTML =
+        '<p class="text-danger">Failed to load gift cards.</p>';
     });
 
   document.getElementById("countryFilter").addEventListener("change", applyFilters);
   document.getElementById("amountFilter").addEventListener("change", applyFilters);
   document.getElementById("searchFilter").addEventListener("input", applyFilters);
 });
+
 
 function parseGiftCardsCSV(rawCSV) {
   const lines = rawCSV.split('\n').filter(Boolean);
