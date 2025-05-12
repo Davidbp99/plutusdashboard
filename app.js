@@ -1129,7 +1129,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const trigger = document.querySelector('button[data-bs-target="#howtoPane"]');
   if (trigger) trigger.click();
 
-  if (!localStorage.getItem("plutusNoticeAccepted")) {
+  if (!localStorage.getItem("plutusNoticeAcceptedNew")) {
     const legalModal = new bootstrap.Modal(document.getElementById('legalNoticeModal'));
     const confirmModal = new bootstrap.Modal(document.getElementById('confirmAcceptModal'));
 
@@ -1144,7 +1144,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById("confirmAccept").addEventListener("click", () => {
-      localStorage.setItem("plutusNoticeAccepted", "1");
+      localStorage.setItem("plutusNoticeAcceptedNew", "1");
       confirmModal.hide();
       legalModal.hide();
     });
