@@ -471,53 +471,46 @@ function populateFilters(data) {
   document.getElementById("vaultOnlyToggle").addEventListener("change", toggleVaultView);
   document.getElementById("amountFilter").addEventListener("change", applyFilters);
   document.getElementById("searchFilter").addEventListener("input", applyFilters);
+  document.getElementById("discountFilter").addEventListener("change", applyFilters);
+
 
 }
 
 function applyFilters() {
-    const country = document.getElementById("countryFilter").value;
-    const selectedCats = Array.from(document.querySelectorAll("#categoryFilters input:checked")).map(el => el.value);
-    const showVault = document.getElementById("vaultOnlyToggle").checked;
-    const amountRange = document.getElementById("amountFilter").value;
-    const searchTerm = document.getElementById("searchFilter").value.trim().toLowerCase();
-  
-    let minAmount = 0, maxAmount = Infinity;
-    if (amountRange) {
-      const [minStr, maxStr] = amountRange.split("-");
-      minAmount = parseFloat(minStr);
-      maxAmount = parseFloat(maxStr);
-    }
-  
-    const filterFunc = (card) => {
-      const countryMatch = !country || card.countries.includes(country);
-      const categoryMatch = selectedCats.length === 0 || selectedCats.some(cat => card.categories.includes(cat));
-      const denomMatch = (card.denominations || []).some(val => val >= minAmount && val <= maxAmount);
-      const nameMatch = !searchTerm || card.name.toLowerCase().includes(searchTerm);
-      return countryMatch && categoryMatch && denomMatch && nameMatch;
-    };
-  
-    if (showVault) {
-      const filtered = giftcardVault
-        .filter(entry => filterFunc(entry.brand))
-        .sort((a, b) => {
-          const aMax = Math.max(...(a.brand.denominations || [0]));
-          const bMax = Math.max(...(b.brand.denominations || [0]));
-          return bMax - aMax;
-        });
-  
-      renderVaultCards(filtered);
-    } else {
-      const filtered = allGiftCards
-        .filter(filterFunc)
-        .sort((a, b) => {
-          const aMax = Math.max(...(a.denominations || [0]));
-          const bMax = Math.max(...(b.denominations || [0]));
-          return bMax - aMax;
-        });
-  
-      renderGiftCards(filtered);
-    }
+  const country = document.getElementById("countryFilter").value;
+  const selectedCats = Array.from(document.querySelectorAll("#categoryFilters input:checked")).map(el => el.value);
+  const showVault = document.getElementById("vaultOnlyToggle").checked;
+  const amountRange = document.getElementById("amountFilter").value;
+  const searchTerm = document.getElementById("searchFilter").value.trim().toLowerCase();
+  const discountRange = document.getElementById("discountFilter").value;
+
+  let [minAmount, maxAmount] = [0, Infinity];
+  if (amountRange) {
+    [minAmount, maxAmount] = amountRange.split("-").map(parseFloat);
   }
+
+  let [minDiscount, maxDiscount] = [0, Infinity];
+  if (discountRange) {
+    [minDiscount, maxDiscount] = discountRange.split("-").map(parseFloat);
+  }
+
+  const filterFunc = (card) => {
+    const countryMatch = !country || card.countries.includes(country);
+    const categoryMatch = selectedCats.length === 0 || selectedCats.some(cat => card.categories.includes(cat));
+    const denomMatch = (card.denominations || []).some(val => val >= minAmount && val <= maxAmount);
+    const discount = parseFloat(card.discount_percentage || 0);
+    const discountMatch = discount >= minDiscount && discount <= maxDiscount;
+    const nameMatch = !searchTerm || card.name.toLowerCase().includes(searchTerm);
+
+    return countryMatch && categoryMatch && denomMatch && discountMatch && nameMatch;
+  };
+
+  const filtered = (showVault ? giftcardVault.map(g => g.brand) : allGiftCards)
+    .filter(filterFunc)
+    .sort((a, b) => Math.max(...(b.denominations || [0])) - Math.max(...(a.denominations || [0])));
+
+  showVault ? renderVaultCards(giftcardVault.filter(entry => filterFunc(entry.brand))) : renderGiftCards(filtered);
+}
   
   
   
