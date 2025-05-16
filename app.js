@@ -126,8 +126,13 @@ async function fetchData() {
         fetchSubscriptionInfo(token),
         fetchStakingWallets(token)
       ]);
-      window.lastFetchedUserData = {crySummary,subscription,wallets}
+      
+      const perks = await fetchPerks(token);
+      window.lastFetchedUserData = { crySummary, subscription, wallets, perks };
       renderUserSettings(crySummary, subscription, wallets);
+      renderPerksTab(perks);  
+      
+
       
       
 
@@ -335,7 +340,7 @@ if (localStorage.getItem('devMode') === '1') {
         <td id=\"rewardRate-${tx.id}\">Loading...</td>
       `;
 
-      if (txType === 'DEPOSIT_FUNDS_RECEIVED' || txType === 'PAYIN' || txType === 'PLUTUS_WALLET_GIFTCARD_SWAP_FEE' || txType === 'PLUTUS_WALLET_WITHDRAW_FEE' || txType === 'ASI'  ) {
+      if (txType === 'DEPOSIT_FUNDS_RECEIVED' || txType === 'PAYIN' || txType === 'PLUTUS_WALLET_GIFTCARD_SWAP_FEE' || txType === 'PLUTUS_WALLET_WITHDRAW_FEE' || txType === 'ASI' || txType === 'AUTHORISATION'  ) {
         row.classList.add("table-success");
         const cell = row.querySelector(`#rewardRate-${tx.id}`);
         if (cell) cell.innerText = '--';
@@ -345,7 +350,7 @@ if (localStorage.getItem('devMode') === '1') {
 
       tbody.appendChild(row);
 
-      if (txType !== 'DEPOSIT_FUNDS_RECEIVED' && txType !== 'PAYIN' && txType !== "PLUTUS_WALLET_GIFTCARD_SWAP_FEE" && txType !== "PLUTUS_WALLET_WITHDRAW_FEE" && txType !== 'ASI' ) {
+      if (txType !== 'DEPOSIT_FUNDS_RECEIVED' && txType !== 'PAYIN' && txType !== "PLUTUS_WALLET_GIFTCARD_SWAP_FEE" && txType !== "PLUTUS_WALLET_WITHDRAW_FEE" && txType !== 'ASI' && txType !== 'AUTHORISATION' ) {
         if (isRewardRateFresh(tx.id, tx.date, cache)) {
           const cell = document.getElementById(`rewardRate-${tx.id}`);
           if (cell) cell.innerText = cache[tx.id].rate;
@@ -658,21 +663,7 @@ function toggleVaultView() {
     return cached && cached.date !== today;
   }
   
-  async function fetchRewardRatesWithConcurrency(token, transactions, maxConcurrent = 5) {
-    const queue = [...transactions];
-    const workers = [];
-  
-    for (let i = 0; i < maxConcurrent; i++) {
-      workers.push((async () => {
-        while (queue.length > 0) {
-          const tx = queue.pop();
-          await fetchRewardRateForTransaction(token, tx.id, tx.date);
-        }
-      })());
-    }
-  
-    await Promise.all(workers);
-  }
+
 
   
 
@@ -697,111 +688,130 @@ function toggleVaultView() {
     }
   }
   
-  function renderUserSettings(summary, subscription = null, wallets = []) {
-    const container = document.getElementById("userSettingsContainer");
-    container.innerHTML = "";
-    if (localStorage.getItem('devMode') === '1') {
-      container.onclick = () => {
-        showDevInspector('User Settings APIs', {
-          crySummarySource: 'cry/ledger/summary',
-          subscriptionSource: 'subscription',
-          walletsSource: 'staking-wallets/list',
-          crySummary: summary,
-          subscription,
-          wallets
-        });
-      };
-      container.style.cursor = 'pointer';
-      container.title = 'Click to inspect full user settings data (DevMode)';
-    } else {
-      container.onclick = null;
-      container.style.cursor = '';
-      container.title = '';
-    }
-    
-    
-    setTimeout(() => {
-      const currencyEl = document.getElementById("currencySelect");
-      if (currencyEl) {
-        currencyEl.value = loadCurrencyPreference();
-      }
-    }, 0);
-    
-
-    if (!summary) {
-      container.innerHTML = `<p class="text-danger">Failed to load user summary.</p>`;
-      return;
-    }
+  function renderUserSettings(summary, subscription = null, wallets = [], perksData = null) {
+    // Summary Tab
+    const summaryEl = document.getElementById("summaryContainer");
+    if (summaryEl) {
+      summaryEl.innerHTML = "";
+      if (summary) {
+        const total = parseFloat(summary.totalBalance);
+        const reward = parseFloat(summary.availableReward);
+        const rate = parseInt(summary.cryRate);
   
-    const total = parseFloat(summary.totalBalance);
-    const reward = parseFloat(summary.availableReward);
-    const rate = parseInt(summary.cryRate);
+        let level = CRY_REWARD_LEVELS[0].label;
+        for (const tier of CRY_REWARD_LEVELS) {
+          if (total >= tier.threshold) level = tier.label;
+          else break;
+        }
   
-    let level = CRY_REWARD_LEVELS[0].label;
-    for (const tier of CRY_REWARD_LEVELS) {
-      if (total >= tier.threshold) level = tier.label;
-      else break;
-    }
-  
-    const subInfo = subscription
-      ? `
-        <div class="card bg-secondary text-light border-light mt-3">
-          <div class="card-body">
-            <h6 class="card-title">Subscription</h6>
-            <p class="card-text mb-1"><strong>Plan:</strong> ${subscription.plan}</p>
-            <p class="card-text mb-1"><strong>Billing:</strong> ${subscription.billingCycle}</p>
-            <p class="card-text mb-1"><strong>Start:</strong> ${new Date(subscription.start).toLocaleDateString()}</p>
-            <p class="card-text mb-0"><strong>End:</strong> ${new Date(subscription.end).toLocaleDateString()}</p>
-          </div>
-        </div>
-      `
-      : `<p class="text-muted mt-3">No subscription data found.</p>`;
-  
-    const walletCards = wallets.map(w => {
-      const short = `${w.address.slice(0, 6)}...${w.address.slice(-4)}`;
-      return `
-        <div class="col-md-12 mb-2">
-          <div class="card bg-secondary text-light border-light">
-            <div class="card-body d-flex justify-content-between align-items-center">
-              <div>
-                <strong>Wallet:</strong> <code>${short}</code><br>
-                <strong>Balance:</strong> ${parseFloat(w.balance).toFixed(4)} PLU
+        const summaryCard = document.createElement('div');
+        summaryCard.className = "col-md-6";
+        summaryCard.innerHTML = `
+          <div class="card bg-dark text-light border-secondary">
+            <div class="card-body">
+              <h5 class="card-title">User Summary</h5>
+              <p class="card-text mb-1"><strong>Total PLU:</strong> ${total.toFixed(2)}</p>
+              <p class="card-text mb-1"><strong>CRY Rewards:</strong> ${reward.toFixed(2)} CRY</p>
+              <p class="card-text mb-1"><strong>Reward Level:</strong> <span class="badge bg-info text-dark">${level}</span></p>
+              <p class="card-text mb-3"><strong>CRY Rate:</strong> ${rate}</p>
+              <div class="mb-2">
+                <label for="currencySelect"><strong>Preferred Currency</strong></label>
+                <select id="currencySelect" class="form-select" onchange="saveCurrencyPreference()">
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                </select>
               </div>
-              <a href="https://etherscan.io/address/${w.address}#tokentxns" target="_blank" class="btn btn-outline-info btn-sm">View on Etherscan</a>
             </div>
+          </div>
+        `;
+        
+        if (localStorage.getItem('devMode') === '1') {
+          summaryCard.addEventListener('click', () => showDevInspector('user-summary', summary));
+          summaryCard.classList.add('table-info');
+        }
+        
+        summaryEl.appendChild(summaryCard);
+      } else {
+        summaryEl.innerHTML = `<p class="text-danger">No summary data available.</p>`;
+      }
+    }
+  
+    // Wallets Tab
+
+const walletsEl = document.getElementById("walletsContainer");
+if (walletsEl) {
+  walletsEl.innerHTML = '';
+
+  if (!wallets.length) {
+    walletsEl.innerHTML = `<p class="text-muted">No wallets found.</p>`;
+  } else {
+    wallets.forEach(w => {
+      const card = document.createElement('div');
+      card.className = "col-md-6 mb-3";
+      card.innerHTML = `
+        <div class="card bg-secondary text-light border-light">
+          <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+              <strong>Wallet:</strong> <code>${w.address.slice(0, 6)}...${w.address.slice(-4)}</code><br>
+              <strong>Balance:</strong> ${parseFloat(w.balance).toFixed(4)} PLU
+            </div>
+            <a href="https://etherscan.io/address/${w.address}" target="_blank" class="btn btn-outline-info btn-sm">View</a>
           </div>
         </div>
       `;
-    }).join("");
+
+      if (localStorage.getItem('devMode') === '1') {
+        card.addEventListener('click', () => showDevInspector('staking-wallet', w));
+        card.classList.add('table-info');
+      }
+
+      walletsEl.appendChild(card);
+    });
+  }
+}
+
   
-    container.innerHTML = `
-      <div class="col-md-6">
-        <div class="card bg-dark text-light border-secondary">
-          <div class="card-body">
-            <h5 class="card-title">User Summary</h5>
-            <p class="card-text mb-1"><strong>Total PLU:</strong> ${total.toFixed(2)}</p>
-            <p class="card-text mb-1"><strong>CRY Rewards:</strong> ${reward.toFixed(2)} CRY</p>
-            <p class="card-text mb-1"><strong>Reward Level:</strong> <span class="badge bg-info text-dark">${level}</span></p>
-            <p class="card-text mb-0"><strong>CRY Rate:</strong> ${rate}</p>
+// Subscription Tab
+const subEl = document.getElementById("subscriptionContainer");
+if (subEl) {
+  subEl.innerHTML = '';
 
-            <div class="mb-3">
-  <label for="currencySelect" class="card-text mb-0"><strong>Preferred Currency</strong></label>
-  <select id="currencySelect" class="form-select" onchange="saveCurrencyPreference()">
-    <option value="EUR">EUR (€)</option>
-    <option value="GBP">GBP (£)</option>
-  </select>
-</div>
-
-          </div>
+  if (subscription) {
+    const card = document.createElement('div');
+    card.className = "col-md-6";
+    card.innerHTML = `
+      <div class="card bg-secondary text-light border-light">
+        <div class="card-body">
+          <h5 class="card-title">Subscription</h5>
+          <p><strong>Plan:</strong> ${subscription.plan}</p>
+          <p><strong>Billing:</strong> ${subscription.billingCycle}</p>
+          <p><strong>Start:</strong> ${new Date(subscription.start).toLocaleDateString()}</p>
+          <p><strong>End:</strong> ${new Date(subscription.end).toLocaleDateString()}</p>
         </div>
-        ${subInfo}
-      </div>
-      <div class="col-md-6">
-        <h5 class="text-light mb-3">Staking Wallets</h5>
-        ${walletCards || `<p class="text-muted">No wallets found.</p>`}
       </div>
     `;
+
+    if (localStorage.getItem('devMode') === '1') {
+      card.addEventListener('click', () => showDevInspector('subscription', subscription));
+      card.classList.add('table-info');
+    }
+
+    subEl.appendChild(card);
+  } else {
+    subEl.innerHTML = `<p class="text-muted">No subscription data found.</p>`;
   }
+}
+
+  
+    // Perks are already handled by `renderPerksTab()`
+    setTimeout(() => {
+      const currencyEl = document.getElementById("currencySelect");
+      if (currencyEl) currencyEl.value = loadCurrencyPreference();
+    }, 0);
+  }
+  
+  
+  
   
   
   async function fetchSubscriptionInfo(token) {
@@ -971,7 +981,7 @@ function renderSpendingTab(transactions) {
     <table class="table table-hover">
       <thead><tr><th>Merchant</th><th>Total Spent</th><th>Tx Count</th><th>Avg Amount</th><th>Avg Interval (days)</th></tr></thead>
       <tbody>
-        ${recurring.map(r => `<tr><td>${r.merchant} <button class='btn btn-sm btn-outline-danger ms-2' onclick='dismissRecurring("${r.merchant}")'>X</button></td><td>${formatCurrency(r.totalSpent)}</td><td>${r.txCount}</td><td>€${r.avgAmount.toFixed(2)}</td><td>${r.avgInterval.toFixed(1)}</td></tr>`).join('')}
+        ${recurring.map(r => `<tr><td>${r.merchant} <button class='btn btn-sm btn-outline-danger ms-2' onclick='dismissRecurring("${r.merchant}")'>X</button></td><td>${formatCurrency(r.totalSpent)}</td><td>${r.txCount}</td><td>${formatCurrency(r.avgAmount)}</td><td>${r.avgInterval.toFixed(1)}</td></tr>`).join('')}
       </tbody>
     </table>
     <h4 class="mt-4">Category Breakdown</h4>
@@ -979,7 +989,7 @@ function renderSpendingTab(transactions) {
     <table class="table table-hover">
       <thead><tr><th>Category</th><th>Total Spent</th><th>Tx Count</th><th>Avg Spend</th><th>Total PLU</th></tr></thead>
       <tbody>
-        ${categories.map(c => `<tr><td>${c.category}</td><td>€${c.spend.toFixed(2)}</td><td>${c.count}</td><td>€${c.avgSpend.toFixed(2)}</td><td>${c.plu.toFixed(4)}</td></tr>`).join('')}
+        ${categories.map(c => `<tr><td>${c.category}</td><td>${formatCurrency(c.spend)}</td><td>${c.count}</td><td>${formatCurrency(c.avgSpend)}</td><td>${c.plu.toFixed(4)}</td></tr>`).join('')}
       </tbody>
     </table>
   `;
@@ -1155,4 +1165,372 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+let perkSelectorState = {
+  perks: [],
+  selected: [],
+  favorites: JSON.parse(localStorage.getItem('perkFavorites') || '[]'),
+  mode: 'current',
+  limit: 0,
+  stackingTokens: 0,
+  categories: []
+};
+function switchPerkSelectorMode() {
+  const isNext = perkSelectorState.mode === 'current';
 
+  // Toggle mode
+  perkSelectorState.mode = isNext ? 'next' : 'current';
+
+  // Recalculate perks based on mode
+  const perksData = window.lastFetchedUserData?.perks;
+  if (!perksData) return;
+
+  const selectedPerks = isNext ? perksData.nextMonthPerks : perksData.currentMonthPerks;
+  const limit = perksData.perksLimit || 0;
+  const stacking = perksData.stackingTokensCount || 0;
+
+  // Flatten selected perk IDs (can have duplicates due to stacking)
+  perkSelectorState.selected = selectedPerks.map(p => p.id);
+  perkSelectorState.limit = limit;
+  perkSelectorState.stackingTokens = stacking;
+
+  renderPerkSelectorModal();
+}
+
+
+function openPerkSelector(mode = 'current') {
+  const token = document.getElementById("authToken").value.trim();
+  if (!token) return alert("Missing token");
+  perkSelectorState.mode = mode;
+
+  fetch("https://api.plutus.it/v3/perks/page-data", {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then(res => res.json())
+    .then(data => {
+      perkSelectorState.limit = data.perksLimit;
+      perkSelectorState.stackingTokens = data.stackingTokensCount || 0;
+      perkSelectorState.selected = (mode === 'next' ? data.nextMonthPerks : data.currentMonthPerks).map(p => p.id);
+
+      return fetch(`https://api.plutus.it/v3/perks?term=${mode}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    })
+    .then(res => res.json())
+    .then(json => {
+      perkSelectorState.perks = json.perks || [];
+      perkSelectorState.categories = [...new Set(json.perks.map(p => p.category).filter(Boolean))];
+      renderPerkSelectorModal();
+      new bootstrap.Modal(document.getElementById("perkSelectorModal")).show();
+    })
+    .catch(err => {
+      console.error("Perk fetch failed", err);
+      alert("Failed to load perks");
+    });
+}
+
+function renderPerkSelectorModal() {
+  const modalBody = document.getElementById("perkSelectorModalBody");
+  const search = document.getElementById("perkSearchInput").value.trim().toLowerCase();
+  const catFilter = document.getElementById("perkCategoryFilter")?.value || '';
+  const favOnly = catFilter === 'Favorites';
+
+  const perks = perkSelectorState.perks.filter(p => {
+    const matchSearch = p.label.toLowerCase().includes(search);
+    const matchFav = favOnly ? perkSelectorState.favorites.includes(p.id) : true;
+    const matchCat = catFilter && !favOnly ? p.category === catFilter : true;
+    return matchSearch && matchFav && matchCat;
+  });
+
+  // Set month names in English
+  const now = new Date();
+  const currentMonth = now.toLocaleString('en-US', { month: 'long' });
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1).toLocaleString('en-US', { month: 'long' });
+
+  const monthLabel = perkSelectorState.mode === 'current'
+    ? `${currentMonth} (Current Month)`
+    : `${nextMonth} (Next Month)`;
+
+  // Set modal title
+  document.getElementById('perkSelectorTitle').innerHTML =
+  `Select Your Perks — <strong>${monthLabel}</strong> (<span id="perkSelectorLimitDisplay">${perkSelectorState.selected.length}/${perkSelectorState.limit}</span>)`;
+
+
+  // Rebuild category filters if not already populated
+  const categorySelect = document.getElementById("perkCategoryFilter");
+  if (categorySelect && categorySelect.options.length <= 1) {
+    categorySelect.innerHTML = `<option value="">All</option><option value="Favorites">★ Favorites</option>` +
+      perkSelectorState.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+
+  // Reset modal body and add month switcher
+  modalBody.innerHTML = '';
+  const switchBtn = document.createElement('div');
+  switchBtn.className = "d-flex justify-content-between align-items-center mb-3";
+  switchBtn.innerHTML = `
+    <h5 class="mb-0">${monthLabel}</h5>
+    <button class="btn btn-sm btn-outline-info" onclick="switchPerkSelectorMode()">
+      Switch to ${perkSelectorState.mode === 'current' ? 'Next Month' : 'Current Month'}
+    </button>
+  `;
+  modalBody.appendChild(switchBtn);
+
+  // Render perks
+  perks.forEach(p => {
+    const selectedCount = perkSelectorState.selected.filter(id => id === p.id).length;
+    const favorite = perkSelectorState.favorites.includes(p.id);
+    const canAdd = selectedCount < 2 && (selectedCount === 0 || perkSelectorState.stackingTokens > 0);
+    const canStack = selectedCount === 1 &&
+                     perkSelectorState.stackingTokens > 0 &&
+                     perkSelectorState.selected.length < perkSelectorState.limit;
+
+    const div = document.createElement("div");
+    div.className = "perk-item d-flex align-items-center justify-content-between border p-2 mb-1 bg-dark text-light";
+
+    div.innerHTML = `
+      <div class="d-flex align-items-center">
+        <img src="${p.imageUrl}" alt="${p.label}" style="height: 30px" class="me-2">
+        <div>
+          <strong>${p.label}</strong><br>
+          <small class="text-muted">${p.category || 'Uncategorized'}</small>
+        </div>
+        ${p.isBonus ? '<span class="badge bg-warning ms-2">Bonus</span>' : ''}
+      </div>
+      <div>
+<div>
+  ${selectedCount ? (
+    perkSelectorState.mode === 'current'
+      ? `<button class="btn btn-sm btn-outline-secondary me-1" disabled
+            title="Locked. Only Plutus staff can remove current-month perks.">
+           Remove (${selectedCount})
+         </button>`
+      : `<button class="btn btn-sm btn-danger me-1" onclick="handlePerkRemove(${p.id})">
+           Remove (${selectedCount})
+         </button>`
+  ) : `
+    <button class="btn btn-sm btn-success me-1" onclick="togglePerk(${p.id})">
+      Add
+    </button>`
+  }
+  ${canStack ? `<button class="btn btn-sm btn-outline-primary me-1" onclick="stackPerk(${p.id})">+1 Stack</button>` : ''}
+  <button class="btn btn-sm btn-outline-${favorite ? 'warning' : 'light'}" onclick="toggleFavorite(${p.id})">
+    ★
+  </button>
+</div>
+    `;
+
+    if (localStorage.getItem('devMode') === '1') {
+      div.addEventListener('click', () => showDevInspector('perk-selector', p));
+      div.classList.add('table-info');
+    }
+
+    modalBody.appendChild(div);
+    
+  });
+
+  document.getElementById("perkSelectorLimitDisplay").textContent =
+    `${perkSelectorState.selected.length} / ${perkSelectorState.limit}`;
+}
+
+function togglePerk(id) {
+  const selected = perkSelectorState.selected;
+  const count = selected.filter(x => x === id).length;
+
+  if (count === 0) {
+    if (selected.length >= perkSelectorState.limit) return alert("Reached perk limit");
+    selected.push(id);
+  } else {
+    if (perkSelectorState.mode === 'current') return; // Prevent removal in current month
+    perkSelectorState.selected = selected.filter(x => x !== id);
+  }
+
+  renderPerkSelectorModal();
+}
+
+function stackPerk(id) {
+  const selected = perkSelectorState.selected;
+  const count = selected.filter(x => x === id).length;
+  if (count !== 1 || perkSelectorState.stackingTokens < 1) return;
+  if (selected.length >= perkSelectorState.limit) return alert("Reached total perk limit");
+  selected.push(id);
+  perkSelectorState.stackingTokens--;
+  renderPerkSelectorModal();
+}
+
+function toggleFavorite(id) {
+  const favs = perkSelectorState.favorites;
+  const idx = favs.indexOf(id);
+  if (idx >= 0) favs.splice(idx, 1);
+  else favs.push(id);
+  localStorage.setItem('perkFavorites', JSON.stringify(favs));
+  renderPerkSelectorModal();
+}
+
+function toggleNextPerks() {
+  const current = document.getElementById("currentPerksWrapper");
+  const next = document.getElementById("nextPerksWrapper");
+  const isShowingCurrent = current.style.display !== "none";
+  current.style.display = isShowingCurrent ? "none" : "block";
+  next.style.display = isShowingCurrent ? "block" : "none";
+}
+
+async function fetchPerks(token) {
+  try {
+    const res = await fetch("https://api.plutus.it/v3/perks/page-data", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json"
+      }
+    });
+    const json = await res.json();
+    return json;
+  } catch (err) {
+    console.error("Perks fetch error", err);
+    return null;
+  }
+}
+
+function renderPerksTab(perksData) {
+  const currentWrapper = document.getElementById("currentPerks");
+  const nextWrapper = document.getElementById("nextPerks");
+  const bonusWrapper = document.getElementById("bonusPerks");
+  const perkCountLabel = document.getElementById("perkCount");
+  const perkCountNextLabel = document.getElementById("perkCountNext");
+
+  if (!currentWrapper || !nextWrapper || !perkCountLabel || !perkCountNextLabel || !bonusWrapper) return;
+
+  function groupPerks(perks) {
+    const map = new Map();
+    for (const p of perks) {
+      const key = p.id;
+      if (!map.has(key)) {
+        map.set(key, {
+          ...p,
+          count: 1,
+          totalRewarded: parseFloat(p.currentMonthFiatRewarded || "0")
+        });
+      } else {
+        const entry = map.get(key);
+        entry.count += 1;
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  function renderCard(p, isBonus = false) {
+    const max = parseFloat(p.maxMonthlyFiatReward || 10) * p.count;
+    return `
+      <div class="col-md-4 mb-3">
+        <div class="card ${isBonus ? 'bg-dark text-warning' : 'bg-secondary text-light'} border-light h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <img src="${p.imageUrl}" alt="${p.label}" style="height: 24px; width: auto;" class="me-2">
+              <h6 class="card-title mb-0">${p.label}</h6>
+            </div>
+            <p class="mb-1"><strong>${p.totalRewarded.toFixed(2)} / ${max.toFixed(2)} in PLUS</strong></p>
+            <p class="mb-1">Stacks: ${p.count}</p>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-primary" role="progressbar" style="width: ${Math.min(100, (p.totalRewarded / max) * 100).toFixed(1)}%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const current = groupPerks(perksData.currentMonthPerks || []);
+  const next = groupPerks(perksData.nextMonthPerks || []);
+  const bonus = groupPerks(perksData.bonusPerks || []);
+  const selectedCount = perksData.currentMonthPerks?.length || 0;
+  const selectedNextCount = perksData.nextMonthPerks?.length || 0;
+  const perkLimit = perksData.perksLimit || 0;
+
+  perkCountLabel.textContent = `(${selectedCount} of ${perkLimit})`;
+  perkCountNextLabel.textContent = `(${selectedNextCount} of ${perkLimit})`;
+  currentWrapper.innerHTML = current.map(p => renderCard(p)).join("");
+  nextWrapper.innerHTML = next.map(p => renderCard(p)).join("");
+  bonusWrapper.innerHTML = bonus.length
+    ? `<h6 class="text-warning">Bonus Perks</h6><div class="row mt-2">${bonus.map(p => renderCard(p, true)).join("")}</div>`
+    : "";
+}
+
+function handlePerkRemove(id) {
+  // Filter out one instance of this ID (handles stacking)
+  const index = perkSelectorState.selected.indexOf(id);
+  if (index >= 0) {
+    perkSelectorState.selected.splice(index, 1);
+    renderPerkSelectorModal();
+  }
+}
+
+function showPerkSaveConfirmation() {
+  const previous = (perkSelectorState.mode === 'next'
+    ? window.lastFetchedUserData?.perks?.nextMonthPerks
+    : window.lastFetchedUserData?.perks?.currentMonthPerks) || [];
+
+  const modal = new bootstrap.Modal(document.getElementById("perkConfirmModal"));
+  const container = document.getElementById("perkConfirmBody");
+  const confirmBtn = document.getElementById("perkConfirmSaveBtn");
+
+  const previousMap = groupByIdWithCount(previous.map(p => p.id));
+  const currentMap = groupByIdWithCount(perkSelectorState.selected);
+
+  const allIds = new Set([...Object.keys(previousMap), ...Object.keys(currentMap)].map(id => parseInt(id)));
+
+  let changes = [];
+  for (const id of allIds) {
+    const oldCount = previousMap[id] || 0;
+    const newCount = currentMap[id] || 0;
+    if (newCount !== oldCount) {
+      const perk = perkSelectorState.perks.find(p => p.id === id);
+      changes.push({
+        id,
+        label: perk?.label || `Perk #${id}`,
+        imageUrl: perk?.imageUrl || '',
+        oldCount,
+        newCount
+      });
+    }
+  }
+
+  container.innerHTML = changes.map(p => `
+    <div class="d-flex align-items-center mb-2">
+      <img src="${p.imageUrl}" alt="${p.label}" style="height: 28px;" class="me-2">
+      <strong>${p.label}</strong>
+      <span class="ms-auto">${p.oldCount} ➜ ${p.newCount}</span>
+    </div>
+  `).join('') || '<p class="text-muted">No changes detected.</p>';
+
+  confirmBtn.onclick = () => doSavePerks();
+  modal.show();
+}
+
+function doSavePerks() {
+  const token = document.getElementById("authToken").value.trim();
+  fetch("https://api.plutus.it/v3/perks/update", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ newPerks: perkSelectorState.selected, term: perkSelectorState.mode })
+  })
+  .then(res => res.json())
+  .then(json => {
+    alert("✅ Perks updated successfully");
+    bootstrap.Modal.getInstance(document.getElementById("perkSelectorModal")).hide();
+    bootstrap.Modal.getInstance(document.getElementById("perkConfirmModal")).hide();
+    fetchData();
+  })
+  .catch(err => {
+    console.error("Update failed", err);
+    alert("❌ Failed to update perks");
+  });
+}
+
+function groupByIdWithCount(list) {
+  const map = {};
+  for (const id of list) {
+    map[id] = (map[id] || 0) + 1;
+  }
+  return map;
+}

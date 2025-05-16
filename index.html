@@ -105,6 +105,9 @@ body:not(.devmode-active) .table-info {
   color: inherit !important;
   cursor: default !important;
 }
+#devInspectorModal {
+  z-index: 1100 !important; /* Bootstrap modal default is 1055 */
+}
 
 
   </style>
@@ -196,7 +199,6 @@ body:not(.devmode-active) .table-info {
       <button class="nav-link" data-bs-toggle="tab" data-bs-target="#giftcardsPane" type="button" role="tab">Gift Cards</button>
     </li>
 
-    
     
   </ul>
 
@@ -358,15 +360,108 @@ body:not(.devmode-active) .table-info {
 
 <!-- Userpanel -->
 <div class="tab-pane fade" id="userPane">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h4 class="card-title mb-3">User Settings</h4>
-        <div id="userSettingsContainer" class="row"></div>
+<div id="userSettingsContainer" class="row"></div>
+  <h4 class="card-title mb-3">User Settings</h4>
+
+  <!-- Nested tabs for user settings -->
+  <ul class="nav nav-tabs mb-3" id="userSettingsTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#summaryTab" type="button" role="tab">Summary</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#walletsTab" type="button" role="tab">Staking Wallets</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#subscriptionTab" type="button" role="tab">Subscription</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#perksTab" type="button" role="tab">Perks</button></li>
+  </ul>
+
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="summaryTab" role="tabpanel">
+      <div id="summaryContainer" class="row"></div>
+    </div>
+    <div class="tab-pane fade" id="walletsTab" role="tabpanel">
+      <div id="walletsContainer" class="row"></div>
+    </div>
+    <div class="tab-pane fade" id="subscriptionTab" role="tabpanel">
+      <div id="subscriptionContainer" class="row"></div>
+    </div>
+    <div class="tab-pane fade" id="perksTab" role="tabpanel">
+      <div id="bonusPerks" class="mt-4"></div>
+      <div id="perksTabContainer" class="row">
+        <div id="currentPerksWrapper" class="mb-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5>Current Perks  <span id="perkCount"></span></h5>
+            <div>
+              <button class="btn btn-sm btn-outline-light me-2" onclick="openPerkSelector('current')">🛠 Edit Current</button>
+              <button class="btn btn-sm btn-outline-light me-2" onclick="openPerkSelector('next')">🗓 Edit Next</button>
+              <button class="btn btn-sm btn-outline-light" onclick="toggleNextPerks()">▶ Next Month</button>
+            </div>
+          </div>
+          
+          <div id="currentPerks" class="row mt-2"></div>
+        </div>
+        
+        <div id="nextPerksWrapper" class="mb-4" style="display:none;">
+          <div id="bonusPerks" class="mt-4"></div>
+          <div class="d-flex justify-content-between align-items-center">
+            <h5>Next Month's Perks <span id="perkCountNext"></span></h5>
+            <div>
+            <button class="btn btn-sm btn-outline-light" onclick="openPerkSelector('next')">🗓 Edit This</button>
+            <button class="btn btn-sm btn-outline-light" onclick="toggleNextPerks()">▼ Back to Current</button>
+          </div>
+          </div>
+          <div id="nextPerks" class="row mt-2"></div>
+        </div>
+        
+
       </div>
     </div>
   </div>
+</div>
+
+<!-- Perk Selector Modal -->
+ 
+<div class="modal fade" id="perkSelectorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title" id="perkSelectorTitle">
+          Select Your Perks (<span id="perkSelectorLimitDisplay">0/0</span>)
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      
+      <div class="mb-2">
+        <select id="perkCategoryFilter" class="form-select form-select-sm" onchange="renderPerkSelectorModal()">
+          <option value="">All</option>
+        </select>
+      </div>
+      
+      <div class="modal-body" id="perkSelectorModalBody">
+        Loading...
+      </div>
+      <div class="modal-footer">
+        <input type="text" id="perkSearchInput" class="form-control me-auto" placeholder="Search perks..." oninput="renderPerkSelectorModal()">
+        <button class="btn btn-success" onclick="showPerkSaveConfirmation()">Save</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
   
 
+ <div class="modal fade" id="perkConfirmModal" tabindex="-1">
+   <div class="modal-dialog">
+     <div class="modal-content bg-dark text-light">
+       <div class="modal-header">
+         <h5 class="modal-title">Confirm Perk Changes</h5>
+         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+       </div>
+       <div class="modal-body" id="perkConfirmBody"></div>
+       <div class="modal-footer">
+         <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+         <button class="btn btn-primary" id="perkConfirmSaveBtn">Confirm</button>
+       </div>
+ </div>
+   </div>
+ </div>
 
     <!-- Add this to your tab content -->
 <div class="tab-pane fade" id="transactionsPane">
