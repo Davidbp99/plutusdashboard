@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("amountFilter").addEventListener("change", applyFilters);
   document.getElementById("categoryDropdown").addEventListener("change", applyFilters);
   document.getElementById("searchFilter").addEventListener("input", applyFilters);
+  document.getElementById("discountFilter").addEventListener("change", applyFilters);
+
 });
 
 function getCountryName(code) {
@@ -49,25 +51,36 @@ function applyFilters() {
   const catSelect = document.getElementById("categoryDropdown");
   const selectedCats = Array.from(catSelect.selectedOptions).map(opt => opt.value);
   const amountRange = document.getElementById("amountFilter").value;
+  const discountRange = document.getElementById("discountFilter").value;
   const searchTerm = document.getElementById("searchFilter").value.trim().toLowerCase();
 
-  let minAmount = 0, maxAmount = Infinity;
+  let [minAmount, maxAmount] = [0, Infinity];
   if (amountRange) {
     const [minStr, maxStr] = amountRange.split("-");
     minAmount = parseFloat(minStr);
     maxAmount = parseFloat(maxStr);
   }
 
+  let [minDiscount, maxDiscount] = [0, 100];
+  if (discountRange) {
+    const [minStr, maxStr] = discountRange.split("-");
+    minDiscount = parseFloat(minStr);
+    maxDiscount = parseFloat(maxStr);
+  }
+
   const filtered = allGiftCards.filter(card => {
     const countryMatch = !country || card.countries.includes(country);
     const categoryMatch = selectedCats.length === 0 || selectedCats.some(cat => card.categories.includes(cat));
     const denomMatch = (card.denominations || []).some(val => val >= minAmount && val <= maxAmount);
+    const discount = parseFloat(card.discount_percentage || "0");
+    const discountMatch = discount >= minDiscount && discount <= maxDiscount;
     const nameMatch = !searchTerm || card.name.toLowerCase().includes(searchTerm);
-    return countryMatch && categoryMatch && denomMatch && nameMatch;
+    return countryMatch && categoryMatch && denomMatch && discountMatch && nameMatch;
   });
 
   renderGiftCards(filtered);
 }
+
 
 function renderGiftCards(cards) {
   const container = document.getElementById("giftcardContainer");
