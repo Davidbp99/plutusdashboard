@@ -1,0 +1,23 @@
+{
+    "name": "Plutus Token Sniffer",
+    "version": "1.0",
+    "manifest_version": 3,
+    "description": "Click to activate token sniffer on Plutus",
+    "permissions": ["scripting", "tabs", "storage", "clipboardWrite"],
+    "host_permissions": ["*://*.plutus.it/*"],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+      }
+    },
+"web_accessible_resources": [
+  {
+    "resources": ["sniffer.js"],
+    "matches": ["<all_urls>"]
+  }
+]
+  }
+  
