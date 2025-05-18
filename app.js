@@ -100,7 +100,10 @@ async function fetchData() {
   
     try {
       const response = await fetch(apiUrl, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
   
       const data = await response.json();
@@ -230,7 +233,10 @@ async function fetchData() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
-        }
+        },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
   
       if (!res.ok) {
@@ -276,7 +282,10 @@ async function fetchTransactions(token, limit) {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
-      }
+      },
+      referrer: "https://app.plutus.it",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      mode: "cors",
     });
 
     const json = await res.json();
@@ -425,7 +434,10 @@ async function fetchGiftCards(token) {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-      }
+      },
+      referrer: "https://app.plutus.it",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      mode: "cors",
     });
     const json = await res.json();
     allGiftCards = json.data || [];
@@ -554,7 +566,10 @@ async function fetchGiftCardVault(token) {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-      }
+      },
+      referrer: "https://app.plutus.it",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      mode: "cors",
     });
 
     const json = await res.json();
@@ -614,7 +629,10 @@ function renderVaultCards(cards) {
       headers: {
         "Authorization": `Bearer ${token}`,
         "Accept": "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "referrer": "https://app.plutus.it",
+        "referrerPolicy": "strict-origin-when-cross-origin",
+        "mode": "cors",
       },
       body: JSON.stringify({ used: newStatus })
     })
@@ -670,7 +688,10 @@ function toggleVaultView() {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json"
-        }
+        },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -813,7 +834,10 @@ if (subEl) {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json"
-        }
+        },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
@@ -1196,7 +1220,10 @@ function openPerkSelector(mode = 'current') {
   perkSelectorState.mode = mode;
 
   fetch("https://api.plutus.it/v3/perks/page-data", {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    referrer: "https://app.plutus.it",
+    referrerPolicy: "strict-origin-when-cross-origin",
+    mode: "cors",
   })
     .then(res => res.json())
     .then(data => {
@@ -1205,7 +1232,10 @@ function openPerkSelector(mode = 'current') {
       perkSelectorState.selected = (mode === 'next' ? data.nextMonthPerks : data.currentMonthPerks).map(p => p.id);
 
       return fetch(`https://api.plutus.it/v3/perks?term=${mode}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
     })
     .then(res => res.json())
@@ -1372,7 +1402,10 @@ async function fetchPerks(token) {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json"
-      }
+      },
+      referrer: "https://app.plutus.it",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      mode: "cors",
     });
     const json = await res.json();
     return json;
@@ -1505,6 +1538,9 @@ function doSavePerks() {
       "Accept": "application/json",
       "Content-Type": "application/json"
     },
+    referrer: "https://app.plutus.it",
+    referrerPolicy: "strict-origin-when-cross-origin",
+    mode: "cors",
     body: JSON.stringify({ newPerks: perkSelectorState.selected, term: perkSelectorState.mode })
   })
   .then(res => res.json())
