@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head><base target="_top"></head>
+  <body>
+    <label>Enter Plutus Bearer Token:</label><br>
+    <input type="text" id="token" style="width: 100%">
+    <br><br>
+    <button onclick="save()">Save</button>
+    <script>
+      function save() {
+        const token = document.getElementById('token').value.trim();
+        if (!token) return alert("Token can't be empty.");
+        google.script.run
+          .withSuccessHandler(() => google.script.host.close())
+          .saveToken(token);
+      }
+    </script>
+  </body>
+</html>
