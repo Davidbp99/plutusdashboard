@@ -1,9 +1,9 @@
 {
     "name": "Plutus Token Sniffer",
-    "version": "1.0",
+    "version": "1.1",
     "manifest_version": 3,
     "description": "Click to activate token sniffer on Plutus",
-    "permissions": ["scripting", "tabs", "storage", "clipboardWrite"],
+    "permissions": ["scripting", "tabs", "clipboardWrite"],
     "host_permissions": ["*://*.plutus.it/*"],
     "action": {
       "default_popup": "popup.html",

@@ -43,12 +43,26 @@ chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
 
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "open-dashboard") {
-    const token = message.token;
+if (message.type === "open-dashboard") {
+  const token = message.token;
+  const useClipboardOnly = document.getElementById("clipboard-only")?.checked;
+
+  if (useClipboardOnly) {
+    navigator.clipboard.writeText(token)
+      .then(() => {
+        status.textContent = "📋 Token copied to clipboard.";
+      })
+      .catch(err => {
+        console.error(err);
+        status.textContent = "❌ Failed to copy token.";
+      });
+  } else {
     chrome.tabs.create({
       url: `https://davidbp99.github.io/plutusdashboard/?token=${encodeURIComponent(token)}`
     });
   }
+}
+
 });
 
 
