@@ -1,0 +1,33 @@
+{
+  "name": "Plutus UI Improver",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["scripting", "tabs", "storage"],
+  "host_permissions": ["*://app.plutus.it/*"],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["uiimprover.js"],
+      "matches": ["*://app.plutus.it/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://app.plutus.it/*"],
+      "js": ["autoinject.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

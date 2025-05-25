@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Plutus Modifier</title>
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #fff;
+      padding: 16px;
+      font-family: sans-serif;
+    }
+    button {
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 10px;
+      width: 100%;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #444;
+    }
+    .status {
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <img src="icon128.png" alt="Plutus UI Improver Logo" style="width: 64px; height: 64px; display: block; margin: 0 auto 12px;" />
+  <h1>🛠 Plutus UI Improver</h1>
+  <button id="injectBtn" style="display:none;">Inject Custom UI</button>
+  <button id="goBtn" style="display:none;">Go to Plutus</button>
+  <div class="status" id="status">Idle</div>
+  <label style="display: flex; align-items: center; margin-top: 12px; font-size: 0.85rem;">
+    <input type="checkbox" id="autoInject" style="margin-right: 8px;" />
+    Auto-inject on app.plutus.it
+  </label>
+  <script src="popup.js"></script>
+</body>
+</html>
