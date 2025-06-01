@@ -468,6 +468,37 @@ body:not(.devmode-active) .table-info {
     <div class="card shadow-sm">
       <div class="card-body">
         <h4 class="card-title mb-3">Transactions</h4>
+        <div class="mb-3">
+  <input type="text" id="transactionSearchInput" class="form-control" placeholder="Search transactions..." oninput="filterTransactionTable()">
+</div>
+<div class="row mb-3">
+  <div class="col-md-4">
+    <label class="form-label">From Date</label>
+    <input type="date" id="statementFromDate" class="form-control">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">To Date</label>
+    <input type="date" id="statementToDate" class="form-control">
+  </div>
+  <div class="col-md-4 d-flex align-items-end">
+    <button class="btn btn-outline-light w-100" onclick="exportStatementCSV()">📄 Export Statement (CSV)</button>
+  </div>
+</div>
+<div class="mb-3">
+  <label class="form-label">Exclude Transaction Types</label>
+  <select id="excludeTypeFilter" class="form-select" multiple onchange="filterTransactionTable()">
+    <option value="AUTHORISATION">AUTHORISATION</option>
+    <option value="PAYOUT">PAYOUT</option>
+    <option value="DEPOSIT_FUNDS_RECEIVED">DEPOSIT_FUNDS_RECEIVED</option>
+    <option value="PAYIN">PAYIN</option>
+    <option value="PLUTUS_WALLET_GIFTCARD_SWAP_FEE">PLUTUS_WALLET_GIFTCARD_SWAP_FEE</option>
+    <option value="PLUTUS_WALLET_WITHDRAW_FEE">PLUTUS_WALLET_WITHDRAW_FEE</option>
+    <option value="ASI">ASI</option>
+    <!-- Add more types if needed -->
+  </select>
+  <small class="form-text text-muted">Hold CTRL (or CMD) to select multiple.</small>
+</div>
+
         <div class="table-responsive">
           <table class="table table-bordered table-hover" id="transactionTable">
             <thead>
@@ -498,6 +529,10 @@ body:not(.devmode-active) .table-info {
           <h4 class="card-title mb-3">Rewards</h4>
           <div class="table-responsive">
             <div class="mb-3">
+              <div class="mb-3">
+  <input type="text" id="rewardSearchInput" class="form-control" placeholder="Search rewards by transaction description..." oninput="filterRewardTable()">
+</div>
+
               <label for="rewardStatusFilter" class="form-label">Filter by Status</label>
               <select id="rewardStatusFilter" class="form-select w-auto d-inline-block" onchange="applyRewardFilter()">
                 <option value="">All</option>
@@ -506,7 +541,21 @@ body:not(.devmode-active) .table-info {
                 <option value="rejected">Rejected</option>
               </select>
             </div>
-            
+<div class="row mb-3">
+  <div class="col-md-4">
+    <label class="form-label">From Date</label>
+    <input type="date" id="rewardFromDate" class="form-control">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">To Date</label>
+    <input type="date" id="rewardToDate" class="form-control">
+  </div>
+  <div class="col-md-4 d-flex align-items-end">
+    <button class="btn btn-outline-light w-100" onclick="exportFilteredRewards()">📤 Export Rewards CSV</button>
+  </div>
+</div>
+
+
             <table class="table table-bordered table-hover" id="rewardTable">
               <thead>
               <tr>
