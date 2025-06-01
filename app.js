@@ -100,7 +100,10 @@ async function fetchData() {
   
     try {
       const response = await fetch(apiUrl, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
   
       const data = await response.json();
@@ -230,7 +233,10 @@ async function fetchData() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
-        }
+        },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
   
       if (!res.ok) {
@@ -276,7 +282,10 @@ async function fetchTransactions(token, limit) {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
-      }
+      },
+      referrer: "https://app.plutus.it",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      mode: "cors",
     });
 
     const json = await res.json();
@@ -425,7 +434,10 @@ async function fetchGiftCards(token) {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-      }
+      },
+      referrer: "https://app.plutus.it",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      mode: "cors",
     });
     const json = await res.json();
     allGiftCards = json.data || [];
@@ -554,7 +566,10 @@ async function fetchGiftCardVault(token) {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-      }
+      },
+      referrer: "https://app.plutus.it",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      mode: "cors",
     });
 
     const json = await res.json();
@@ -614,7 +629,10 @@ function renderVaultCards(cards) {
       headers: {
         "Authorization": `Bearer ${token}`,
         "Accept": "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "referrer": "https://app.plutus.it",
+        "referrerPolicy": "strict-origin-when-cross-origin",
+        "mode": "cors",
       },
       body: JSON.stringify({ used: newStatus })
     })
@@ -670,7 +688,10 @@ function toggleVaultView() {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json"
-        }
+        },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -813,7 +834,10 @@ if (subEl) {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json"
-        }
+        },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
@@ -1196,7 +1220,10 @@ function openPerkSelector(mode = 'current') {
   perkSelectorState.mode = mode;
 
   fetch("https://api.plutus.it/v3/perks/page-data", {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    referrer: "https://app.plutus.it",
+    referrerPolicy: "strict-origin-when-cross-origin",
+    mode: "cors",
   })
     .then(res => res.json())
     .then(data => {
@@ -1205,7 +1232,10 @@ function openPerkSelector(mode = 'current') {
       perkSelectorState.selected = (mode === 'next' ? data.nextMonthPerks : data.currentMonthPerks).map(p => p.id);
 
       return fetch(`https://api.plutus.it/v3/perks?term=${mode}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        referrer: "https://app.plutus.it",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        mode: "cors",
       });
     })
     .then(res => res.json())
@@ -1372,7 +1402,10 @@ async function fetchPerks(token) {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json"
-      }
+      },
+      referrer: "https://app.plutus.it",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      mode: "cors",
     });
     const json = await res.json();
     return json;
@@ -1505,6 +1538,9 @@ function doSavePerks() {
       "Accept": "application/json",
       "Content-Type": "application/json"
     },
+    referrer: "https://app.plutus.it",
+    referrerPolicy: "strict-origin-when-cross-origin",
+    mode: "cors",
     body: JSON.stringify({ newPerks: perkSelectorState.selected, term: perkSelectorState.mode })
   })
   .then(res => res.json())
@@ -1527,3 +1563,123 @@ function groupByIdWithCount(list) {
   }
   return map;
 }
+
+
+
+
+function filterTransactionTable() {
+  const query = document.getElementById("transactionSearchInput").value.toLowerCase();
+  const excludeTypes = Array.from(document.getElementById("excludeTypeFilter").selectedOptions)
+                            .map(opt => opt.value);
+
+  const rows = document.querySelectorAll("#transactionTable tbody tr");
+
+  rows.forEach(row => {
+    const description = row.cells[0]?.innerText.toLowerCase();
+    const type = row.cells[2]?.innerText.trim(); // 3rd column is type
+
+    const matchesSearch = description.includes(query);
+    const excluded = excludeTypes.includes(type);
+
+    row.style.display = matchesSearch && !excluded ? "" : "none";
+  });
+}
+
+
+
+function exportStatementCSV() {
+  if (!window.lastFetchedTransactions) {
+    alert("No transactions loaded.");
+    return;
+  }
+
+  const fromInput = document.getElementById("statementFromDate").value;
+  const toInput = document.getElementById("statementToDate").value;
+
+  const fromDate = new Date(fromInput || 0);
+  const toDate = new Date(toInput || Date.now());
+  toDate.setDate(toDate.getDate() + 1); // include full day
+
+  const excludedTypes = Array.from(document.getElementById("excludeTypeFilter").selectedOptions).map(opt => opt.value);
+
+  const filtered = window.lastFetchedTransactions.filter(tx => {
+    const txDate = new Date(tx.date);
+    return (
+      txDate >= fromDate &&
+      txDate < toDate &&
+      !excludedTypes.includes(tx.type)
+    );
+  });
+
+  if (!filtered.length) {
+    alert("No transactions matched the filters.");
+    return;
+  }
+
+  const rows = filtered.map(tx => ({
+    Date: new Date(tx.date).toLocaleString(),
+    Description: tx.cleanDescription || tx.description || '',
+    Type: tx.type,
+    Status: tx.status || '',
+    Amount: parseFloat(tx.amount).toFixed(2),
+    MCC: tx.mcc || '',
+    PLU_Earned: parseFloat(tx.totalPluAmount || 0).toFixed(4),
+    RewardRate: (loadRewardRateCache()[tx.id]?.rate || '--'),
+    ID: tx.id
+  }));
+
+  const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
+  const filename = `statement_${formatDate(fromDate)}_to_${formatDate(new Date(toDate - 1))}.csv`;
+
+  generateCSV(rows, filename);
+}
+
+
+
+
+function exportFilteredRewards() {
+  if (!window.lastFetchedRewards) {
+    alert("No rewards data loaded.");
+    return;
+  }
+
+  const fromInput = document.getElementById("rewardFromDate").value;
+  const toInput = document.getElementById("rewardToDate").value;
+
+  const fromDate = new Date(fromInput || 0);
+  const toDate = new Date(toInput || Date.now());
+  toDate.setDate(toDate.getDate() + 1); // include full day
+
+  const statusFilter = document.getElementById("rewardStatusFilter").value.toLowerCase();
+
+  const filtered = window.lastFetchedRewards.filter(r => {
+    const createdAt = new Date(r.createdAt);
+    const matchesStatus = !statusFilter || r.status.toLowerCase() === statusFilter;
+    return createdAt >= fromDate && createdAt < toDate && matchesStatus;
+  });
+
+  if (!filtered.length) {
+    alert("No rewards matched the filters.");
+    return;
+  }
+
+  const rows = filtered.map(r => ({
+    ID: r.id,
+    Ticker: r.ticker,
+    Amount: r.amount,
+    FiatAmount: r.fiatAmountRewarded ? (r.fiatAmountRewarded / 100).toFixed(2) : '',
+    Status: r.status,
+    Type: r.type,
+    Description: r.transactionDescription || '',
+    RewardRate: r.rewardRate || '',
+    CreatedAt: new Date(r.createdAt).toLocaleString(),
+    AutoApprovesAt: new Date(new Date(r.createdAt).getTime() + 45 * 24 * 60 * 60 * 1000).toLocaleString()
+  }));
+
+  const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
+  const filename = `rewards_${formatDate(fromDate)}_to_${formatDate(new Date(toDate - 1))}.csv`;
+
+  generateCSV(rows, filename);
+}
+
+
