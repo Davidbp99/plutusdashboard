@@ -1563,3 +1563,123 @@ function groupByIdWithCount(list) {
   }
   return map;
 }
+
+
+
+
+function filterTransactionTable() {
+  const query = document.getElementById("transactionSearchInput").value.toLowerCase();
+  const excludeTypes = Array.from(document.getElementById("excludeTypeFilter").selectedOptions)
+                            .map(opt => opt.value);
+
+  const rows = document.querySelectorAll("#transactionTable tbody tr");
+
+  rows.forEach(row => {
+    const description = row.cells[0]?.innerText.toLowerCase();
+    const type = row.cells[2]?.innerText.trim(); // 3rd column is type
+
+    const matchesSearch = description.includes(query);
+    const excluded = excludeTypes.includes(type);
+
+    row.style.display = matchesSearch && !excluded ? "" : "none";
+  });
+}
+
+
+
+function exportStatementCSV() {
+  if (!window.lastFetchedTransactions) {
+    alert("No transactions loaded.");
+    return;
+  }
+
+  const fromInput = document.getElementById("statementFromDate").value;
+  const toInput = document.getElementById("statementToDate").value;
+
+  const fromDate = new Date(fromInput || 0);
+  const toDate = new Date(toInput || Date.now());
+  toDate.setDate(toDate.getDate() + 1); // include full day
+
+  const excludedTypes = Array.from(document.getElementById("excludeTypeFilter").selectedOptions).map(opt => opt.value);
+
+  const filtered = window.lastFetchedTransactions.filter(tx => {
+    const txDate = new Date(tx.date);
+    return (
+      txDate >= fromDate &&
+      txDate < toDate &&
+      !excludedTypes.includes(tx.type)
+    );
+  });
+
+  if (!filtered.length) {
+    alert("No transactions matched the filters.");
+    return;
+  }
+
+  const rows = filtered.map(tx => ({
+    Date: new Date(tx.date).toLocaleString(),
+    Description: tx.cleanDescription || tx.description || '',
+    Type: tx.type,
+    Status: tx.status || '',
+    Amount: parseFloat(tx.amount).toFixed(2),
+    MCC: tx.mcc || '',
+    PLU_Earned: parseFloat(tx.totalPluAmount || 0).toFixed(4),
+    RewardRate: (loadRewardRateCache()[tx.id]?.rate || '--'),
+    ID: tx.id
+  }));
+
+  const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
+  const filename = `statement_${formatDate(fromDate)}_to_${formatDate(new Date(toDate - 1))}.csv`;
+
+  generateCSV(rows, filename);
+}
+
+
+
+
+function exportFilteredRewards() {
+  if (!window.lastFetchedRewards) {
+    alert("No rewards data loaded.");
+    return;
+  }
+
+  const fromInput = document.getElementById("rewardFromDate").value;
+  const toInput = document.getElementById("rewardToDate").value;
+
+  const fromDate = new Date(fromInput || 0);
+  const toDate = new Date(toInput || Date.now());
+  toDate.setDate(toDate.getDate() + 1); // include full day
+
+  const statusFilter = document.getElementById("rewardStatusFilter").value.toLowerCase();
+
+  const filtered = window.lastFetchedRewards.filter(r => {
+    const createdAt = new Date(r.createdAt);
+    const matchesStatus = !statusFilter || r.status.toLowerCase() === statusFilter;
+    return createdAt >= fromDate && createdAt < toDate && matchesStatus;
+  });
+
+  if (!filtered.length) {
+    alert("No rewards matched the filters.");
+    return;
+  }
+
+  const rows = filtered.map(r => ({
+    ID: r.id,
+    Ticker: r.ticker,
+    Amount: r.amount,
+    FiatAmount: r.fiatAmountRewarded ? (r.fiatAmountRewarded / 100).toFixed(2) : '',
+    Status: r.status,
+    Type: r.type,
+    Description: r.transactionDescription || '',
+    RewardRate: r.rewardRate || '',
+    CreatedAt: new Date(r.createdAt).toLocaleString(),
+    AutoApprovesAt: new Date(new Date(r.createdAt).getTime() + 45 * 24 * 60 * 60 * 1000).toLocaleString()
+  }));
+
+  const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
+  const filename = `rewards_${formatDate(fromDate)}_to_${formatDate(new Date(toDate - 1))}.csv`;
+
+  generateCSV(rows, filename);
+}
+
+
