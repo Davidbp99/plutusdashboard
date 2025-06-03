@@ -33,6 +33,7 @@ function setupTabs() {
     document.getElementById("tab-diff").classList.add("active");
     renderSelectedDiff();
   });
+document.getElementById("sortFilter").addEventListener("change", applyFilters);
 
   ["countryFilter", "amountFilter", "categoryDropdown", "searchFilter", "discountFilter"].forEach(id => {
     document.getElementById(id).addEventListener("change", applyFilters);
@@ -101,29 +102,55 @@ function populateFilters(data) {
 function applyFilters() {
   const country = document.getElementById("countryFilter").value;
   const selectedCats = Array.from(document.getElementById("categoryDropdown").selectedOptions).map(opt => opt.value);
-  const [minAmount, maxAmount] = document.getElementById("amountFilter").value.split("-").map(Number);
-  const [minDiscount, maxDiscount] = document.getElementById("discountFilter").value.split("-").map(Number);
   const searchTerm = document.getElementById("searchFilter").value.trim().toLowerCase();
   const sortOption = document.getElementById("sortFilter")?.value || '';
 
+  // Handle amount range safely
+  let [minAmount, maxAmount] = [0, Infinity];
+  const amountRange = document.getElementById("amountFilter").value;
+  if (amountRange && amountRange.includes("-")) {
+    [minAmount, maxAmount] = amountRange.split("-").map(Number);
+  }
+
+  // Handle discount range safely
+  let [minDiscount, maxDiscount] = [0, 100];
+  const discountRange = document.getElementById("discountFilter").value;
+  if (discountRange && discountRange.includes("-")) {
+    [minDiscount, maxDiscount] = discountRange.split("-").map(Number);
+  }
+
+  // Filtering logic
   let filtered = allGiftCards.filter(card => {
     const discount = parseFloat(card.discount_percentage || "0");
-    return (!country || card.countries.includes(country)) &&
-      (selectedCats.length === 0 || selectedCats.some(cat => card.categories.includes(cat))) &&
-      card.denominations.some(val => val >= minAmount && val <= maxAmount) &&
-      discount >= minDiscount && discount <= maxDiscount &&
-      (!searchTerm || card.name.toLowerCase().includes(searchTerm));
+
+    const countryMatch = !country || card.countries.includes(country);
+    const categoryMatch = selectedCats.length === 0 || selectedCats.some(cat => card.categories.includes(cat));
+    const denomMatch = (card.denominations || []).some(val => val >= minAmount && val <= maxAmount);
+    const discountMatch = discount >= minDiscount && discount <= maxDiscount;
+    const nameMatch = !searchTerm || card.name.toLowerCase().includes(searchTerm);
+
+    return countryMatch && categoryMatch && denomMatch && discountMatch && nameMatch;
   });
 
+  // Sorting logic
   switch (sortOption) {
-    case 'name-asc': filtered.sort((a, b) => a.name.localeCompare(b.name)); break;
-    case 'name-desc': filtered.sort((a, b) => b.name.localeCompare(a.name)); break;
-    case 'discount-desc': filtered.sort((a, b) => parseFloat(b.discount_percentage || 0) - parseFloat(a.discount_percentage || 0)); break;
-    case 'discount-asc': filtered.sort((a, b) => parseFloat(a.discount_percentage || 0) - parseFloat(b.discount_percentage || 0)); break;
+    case 'name-asc':
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case 'name-desc':
+      filtered.sort((a, b) => b.name.localeCompare(a.name));
+      break;
+    case 'discount-desc':
+      filtered.sort((a, b) => parseFloat(b.discount_percentage || 0) - parseFloat(a.discount_percentage || 0));
+      break;
+    case 'discount-asc':
+      filtered.sort((a, b) => parseFloat(a.discount_percentage || 0) - parseFloat(b.discount_percentage || 0));
+      break;
   }
 
   renderGiftCards(filtered);
 }
+
 
 function renderGiftCards(cards) {
   const container = document.getElementById("giftcardContainer");
