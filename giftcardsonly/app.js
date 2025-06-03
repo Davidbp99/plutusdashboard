@@ -35,9 +35,9 @@ function setupTabs() {
   });
 document.getElementById("sortFilter").addEventListener("change", applyFilters);
 
-  ["countryFilter", "amountFilter", "categoryDropdown", "searchFilter", "discountFilter"].forEach(id => {
-    document.getElementById(id).addEventListener("change", applyFilters);
-  });
+["countryFilter", "amountFilter", "categoryDropdown", "searchFilter", "discountFilter", "sortFilter"].forEach(id => {
+  document.getElementById(id).addEventListener("change", applyFilters);
+});
   document.getElementById("searchFilter").addEventListener("input", applyFilters);
 }
 
