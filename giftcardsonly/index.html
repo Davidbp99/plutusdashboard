@@ -1,15 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XZH43W0BG9"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-XZH43W0BG9');
-</script>
   <meta charset="UTF-8">
   <title>Gift Cards Viewer</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -20,9 +11,7 @@
       color: #f1f1f1;
       padding-top: 40px;
     }
-    .card,
-    .form-control,
-    .form-select {
+    .card, .form-control, .form-select {
       background-color: #1a1a1a;
       color: #f1f1f1;
       border-color: #333;
@@ -37,161 +26,73 @@
 <div class="container">
   <h2 class="mb-4">Gift Cards Viewer</h2>
 
-  <div class="row mb-3">
-    <div class="col-md-3">
-      <label class="form-label">Filter by Country</label>
-      <select id="countryFilter" class="form-select">
-        <option value="">All Countries</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Discount %</label>
-      <select id="discountFilter" class="form-select">
-        <option value="">Any</option>
-        <option value="0-5">0–5%</option>
-        <option value="5-10">5–10%</option>
-        <option value="10-30">10–30%</option>
-        <option value="30-100">30%+</option>
-      </select>
-    </div>
-    
-    <div class="col-md-3">
-      <label class="form-label">Min Amount</label>
-      <select id="amountFilter" class="form-select">
-        <option value="1-99999999">Any</option>
-        <option value="50-100">50–100</option>
-        <option value="100-200">100–200</option>
-        <option value="200-500">200–500</option>
-        <option value="500-999999">500+</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Search Gift Cards</label>
-      <input type="text" id="searchFilter" class="form-control" placeholder="e.g. amazon, lidl, travel..." oninput="applyFilters()">
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Filter by Category</label>
-      <select id="categoryDropdown" class="form-select" multiple onchange="applyFilters()"></select>
-    </div>
-    <div class="col-md-3">
-  <label class="form-label">Sort By</label>
-  <select id="sortFilter" class="form-select" onchange="applyFilters()">
-    <option value="">Default</option>
-    <option value="name-asc">Name (A to Z)</option>
-    <option value="name-desc">Name (Z to A)</option>
-    <option value="discount-desc">Discount (High to Low)</option>
-    <option value="discount-asc">Discount (Low to High)</option>
-  </select>
-</div>
+  <ul class="nav nav-tabs mb-4" id="mainTabs">
+    <li class="nav-item">
+      <a class="nav-link active" href="#" id="tab-main">Gift Cards</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="#" id="tab-diff">Compare Changes</a>
+    </li>
+  </ul>
 
+  <div id="mainView">
+    <div class="row mb-3">
+      <div class="col-md-3">
+        <label class="form-label">Filter by Country</label>
+        <select id="countryFilter" class="form-select"></select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Discount %</label>
+        <select id="discountFilter" class="form-select">
+          <option value="">Any</option>
+          <option value="0-5">0–5%</option>
+          <option value="5-10">5–10%</option>
+          <option value="10-30">10–30%</option>
+          <option value="30-100">30%+</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Min Amount</label>
+        <select id="amountFilter" class="form-select">
+          <option value="1-99999999">Any</option>
+          <option value="50-100">50–100</option>
+          <option value="100-200">100–200</option>
+          <option value="200-500">200–500</option>
+          <option value="500-999999">500+</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Search Gift Cards</label>
+        <input type="text" id="searchFilter" class="form-control" placeholder="e.g. amazon, lidl, travel...">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Filter by Category</label>
+        <select id="categoryDropdown" class="form-select" multiple></select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Sort By</label>
+        <select id="sortFilter" class="form-select">
+          <option value="">Default</option>
+          <option value="name-asc">Name (A to Z)</option>
+          <option value="name-desc">Name (Z to A)</option>
+          <option value="discount-desc">Discount (High to Low)</option>
+          <option value="discount-asc">Discount (Low to High)</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" id="giftcardContainer"></div>
   </div>
 
-  <div class="row" id="giftcardContainer"></div>
+  <div id="diffView" style="display: none;">
+    <div class="mb-3">
+      <label class="form-label">Select version comparison:</label>
+      <select id="diffVersionSelector" class="form-select"></select>
+    </div>
+    <div class="row" id="diffContainer"></div>
+  </div>
 </div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    fetch('https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc.csv')
-      .then(res => res.text())
-      .then(csvText => {
-        const parsed = Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true
-        });
-
-        allGiftCards = parsed.data.map(obj => ({
-          name: obj.name,
-          countries: (obj.countries || '').split(';').map(s => s.trim()),
-          categories: (obj.categories || '').split(';').map(s => s.trim()),
-          currency_code: obj.currency,
-          denominations: (obj.denominations || '').split(';').map(n => parseFloat(n.trim())).filter(n => !isNaN(n)),
-          discount_percentage: obj.discount,
-          expiry: obj.expiry,
-          gift_card_url: obj.url
-        }));
-
-        populateFilters(allGiftCards);
-        renderGiftCards(allGiftCards);
-      })
-      .catch(err => {
-        console.error('❌ Failed to load or parse CSV:', err);
-        document.getElementById('giftcardContainer').innerHTML = '<p class="text-danger">Failed to load gift cards.</p>';
-      });
-  });
-</script>
 
 <script src="app.js"></script>
-<!-- Legal Notice Modal -->
-<div class="modal fade" id="legalNoticeModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content bg-dark text-light border-secondary">
-      <div class="modal-header">
-        <h5 class="modal-title">🚨 Legal Notice</h5>
-      </div>
-      <div class="modal-body">
-        <p><strong>This site is not affiliated with any third-party gift card provider or payment platform.</strong></p>
-        <ul>
-          <li>No logos, trademarks, or proprietary branding from any provider are used directly from us.</li>
-          <li>All data shown is from a public CSV source. That was provided via Plutus API</li>
-          <li>Nothing is stored, logged, or transmitted outside your browser session.</li>
-          <li>You are responsible for verifying all values and expiry details directly with the official sources.</li>
-          <li>Review the source code and data used here: <a href="https://github.com/Davidbp99/plutusdashboard" target="_blank">GitHub Repo</a>.</li>
-          <li>Google Analytics is used on this site to track anonymous usage statistics.</li>
-        </ul>
-        <p>By continuing, you confirm you understand and accept these terms.</p>
-      </div>
-      <div class="modal-footer">
-        <button id="rejectLegalNotice" class="btn btn-outline-danger">I Reject</button>
-        <button id="acceptLegalNotice" class="btn btn-primary">I Understand</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Confirm Modal -->
-<div class="modal fade" id="confirmAcceptModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content bg-dark text-light border-secondary">
-      <div class="modal-header">
-        <h5 class="modal-title">⚠️ Confirm</h5>
-      </div>
-      <div class="modal-body">
-        <p>Are you sure you understand this?</p>
-      </div>
-      <div class="modal-footer">
-        <button id="confirmReject" class="btn btn-outline-secondary">Go Back</button>
-        <button id="confirmAccept" class="btn btn-success">Yes, Continue</button>
-      </div>
-    </div>
-  </div>
-</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>document.addEventListener('DOMContentLoaded', () => {
-  if (!localStorage.getItem("giftcardsNoticeAcceptedNew")) {
-    const legalModal = new bootstrap.Modal(document.getElementById('legalNoticeModal'));
-    const confirmModal = new bootstrap.Modal(document.getElementById('confirmAcceptModal'));
-    legalModal.show();
-
-    document.getElementById("acceptLegalNotice").addEventListener("click", () => {
-      confirmModal.show();
-    });
-
-    document.getElementById("rejectLegalNotice").addEventListener("click", () => {
-      window.location.href = "https://www.google.com";
-    });
-
-    document.getElementById("confirmAccept").addEventListener("click", () => {
-      localStorage.setItem("giftcardsNoticeAcceptedNew", "1");
-      confirmModal.hide();
-      legalModal.hide();
-    });
-
-    document.getElementById("confirmReject").addEventListener("click", () => {
-      confirmModal.hide();
-    });
-  }
-});</script>
-
 </body>
 </html>
