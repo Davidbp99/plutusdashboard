@@ -73,6 +73,17 @@
       <label class="form-label">Filter by Category</label>
       <select id="categoryDropdown" class="form-select" multiple onchange="applyFilters()"></select>
     </div>
+    <div class="col-md-3">
+  <label class="form-label">Sort By</label>
+  <select id="sortFilter" class="form-select" onchange="applyFilters()">
+    <option value="">Default</option>
+    <option value="name-asc">Name (A to Z)</option>
+    <option value="name-desc">Name (Z to A)</option>
+    <option value="discount-desc">Discount (High to Low)</option>
+    <option value="discount-asc">Discount (Low to High)</option>
+  </select>
+</div>
+
   </div>
 
   <div class="row" id="giftcardContainer"></div>

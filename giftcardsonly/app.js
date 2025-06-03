@@ -53,6 +53,7 @@ function applyFilters() {
   const amountRange = document.getElementById("amountFilter").value;
   const discountRange = document.getElementById("discountFilter").value;
   const searchTerm = document.getElementById("searchFilter").value.trim().toLowerCase();
+  const sortOption = document.getElementById("sortFilter")?.value || '';
 
   let [minAmount, maxAmount] = [0, Infinity];
   if (amountRange) {
@@ -68,7 +69,7 @@ function applyFilters() {
     maxDiscount = parseFloat(maxStr);
   }
 
-  const filtered = allGiftCards.filter(card => {
+  let filtered = allGiftCards.filter(card => {
     const countryMatch = !country || card.countries.includes(country);
     const categoryMatch = selectedCats.length === 0 || selectedCats.some(cat => card.categories.includes(cat));
     const denomMatch = (card.denominations || []).some(val => val >= minAmount && val <= maxAmount);
@@ -77,6 +78,24 @@ function applyFilters() {
     const nameMatch = !searchTerm || card.name.toLowerCase().includes(searchTerm);
     return countryMatch && categoryMatch && denomMatch && discountMatch && nameMatch;
   });
+
+  switch (sortOption) {
+    case 'name-asc':
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case 'name-desc':
+      filtered.sort((a, b) => b.name.localeCompare(a.name));
+      break;
+    case 'discount-desc':
+      filtered.sort((a, b) => parseFloat(b.discount_percentage || 0) - parseFloat(a.discount_percentage || 0));
+      break;
+    case 'discount-asc':
+      filtered.sort((a, b) => parseFloat(a.discount_percentage || 0) - parseFloat(b.discount_percentage || 0));
+      break;
+    default:
+      // no sort or original logic if needed
+      break;
+  }
 
   renderGiftCards(filtered);
 }
