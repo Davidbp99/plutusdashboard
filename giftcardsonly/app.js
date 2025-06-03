@@ -2,7 +2,6 @@ let allGiftCards = [];
 let versionsData = {};
 
 const versionFiles = [
-  { label: "gc_may12", date: "2024-05-12", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_may12.csv" },
   { label: "gc_may14", date: "2024-05-14", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_may14.csv" },
   { label: "gc_may30", date: "2024-05-30", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_may30.csv" },
   { label: "gc_june03", date: "2024-06-03", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_june03.csv" }
