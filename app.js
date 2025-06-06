@@ -510,7 +510,10 @@ function applyFilters() {
   const filterFunc = (card) => {
     const countryMatch = !country || card.countries.includes(country);
     const categoryMatch = selectedCats.length === 0 || selectedCats.some(cat => card.categories.includes(cat));
-    const denomMatch = (card.denominations || []).some(val => val >= minAmount && val <= maxAmount);
+    const denomMatch = !card.denominations || card.denominations.length === 0
+  ? true
+  : card.denominations.some(val => val >= minAmount && val <= maxAmount);
+
     const discount = parseFloat(card.discount_percentage || 0);
     const discountMatch = discount >= minDiscount && discount <= maxDiscount;
     const nameMatch = !searchTerm || card.name.toLowerCase().includes(searchTerm);
@@ -565,7 +568,7 @@ function applyFilters() {
             <h5 class="card-title">${card.name}</h5>
             <p class="card-text mb-1"><strong>Country:</strong> ${countries}</p>
             <p class="card-text mb-1"><strong>Categories:</strong><br>${categories}</p>
-            <p class="card-text mb-1"><strong>Giftcards Amounts:</strong> ${denominations} ${currency}</p>
+            <p class="card-text mb-1"><strong>Giftcards Amounts:</strong> ${denominations || 'N/A'} ${currency}</p>
             <p class="card-text mb-1"><strong>Discount:</strong> ${card.discount_percentage}%</p>
             <p class="card-text mb-1"><strong>Expiry:</strong> ${card.expiry || 'N/A'}</p>
           </div>
