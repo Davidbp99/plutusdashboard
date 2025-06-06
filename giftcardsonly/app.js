@@ -5,7 +5,8 @@ const versionFiles = [
   { label: "gc_may14", date: "2024-05-14", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_may14.csv" },
   { label: "gc_may30", date: "2024-05-30", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_may30.csv" },
   { label: "gc_june03", date: "2024-06-03", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_june03.csv" },
-  { label: "gc_june04", date: "2024-06-04", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_june04.csv" }
+  { label: "gc_june04", date: "2024-06-04", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_june04.csv" },
+  { label: "gc_june06", date: "2024-06-06", url: "https://davidbp99.github.io/plutusdashboard/giftcardsonly/gc_june06.csv" }
 ];
 
 document.addEventListener("DOMContentLoaded", async () => {
